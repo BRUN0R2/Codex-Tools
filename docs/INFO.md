@@ -28,6 +28,7 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Abrir Codex com elevacao via API nativa do Windows e aplicar apenas prioridade `Normal` ou `Alta`.
 - Instalar automacao em `%LOCALAPPDATA%\CodexTools` com tarefa de logon em privilegio alto e atalho no menu iniciar.
 - Ler a prioridade salva na tarefa instalada para refletir a configuracao atual na interface.
+- Persistir prioridade alta para `Codex.exe` e `codex.exe` via IFEO `PerfOptions` no Registry.
 
 ## Validacao atual
 

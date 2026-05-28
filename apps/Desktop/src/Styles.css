@@ -83,7 +83,8 @@ button {
   grid-template-columns: auto minmax(0, 1fr);
 }
 
-.AutomationActionPanel {
+.AutomationActionPanel,
+.PersistentPriorityActionPanel {
   align-items: center;
   display: grid;
   gap: 12px;
@@ -221,7 +222,8 @@ button {
     grid-template-columns: 1fr;
   }
 
-  .AutomationActionPanel {
+  .AutomationActionPanel,
+  .PersistentPriorityActionPanel {
     grid-template-columns: 1fr;
   }
 }

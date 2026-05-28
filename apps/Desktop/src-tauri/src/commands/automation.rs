@@ -1,7 +1,4 @@
 use std::env;
-use std::fs;
-use std::path::PathBuf;
-use std::process;
 
 use serde::{Deserialize, Serialize};
 
@@ -10,17 +7,15 @@ use crate::contracts::{CommandError, CommandErrorCode, ProcessPriorityRequest};
 use crate::platform::windows_automation::{
     AutomationStatus, automation_status, install_automation, remove_automation,
 };
-use crate::platform::windows_process::run_as_administrator_and_wait;
+use crate::platform::windows_elevated_helper::run_elevated_helper;
 
 const INSTALL_AUTOMATION_ARGUMENT: &str = "--codex-tools-install-automation";
 const REMOVE_AUTOMATION_ARGUMENT: &str = "--codex-tools-remove-automation";
 const RUN_AUTOMATION_ARGUMENT: &str = "--codex-tools-run-automation";
 const PRIORITY_ARGUMENT: &str = "--priority";
-const ELEVATED_HELPER_FILE_PREFIX: &str = "CodexToolsAutomationHelper";
-const ELEVATED_HELPER_FILE_EXTENSION: &str = "exe";
+const AUTOMATION_HELPER_ACTION_NAME: &str = "automation";
 const FAILURE_EXIT_CODE: i32 = 1;
 const SUCCESS_EXIT_CODE: i32 = 0;
-const SUCCESS_PROCESS_EXIT_CODE: u32 = 0;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -49,18 +44,26 @@ pub fn get_automation_status() -> Result<AutomationStatusResponse, CommandError>
 pub fn install_codex_automation(
     request: AutomationInstallRequest,
 ) -> Result<AutomationStatusResponse, CommandError> {
-    run_elevated_helper(&[
-        INSTALL_AUTOMATION_ARGUMENT,
-        PRIORITY_ARGUMENT,
-        request.priority.cli_value(),
-    ])?;
+    run_elevated_helper(
+        &[
+            INSTALL_AUTOMATION_ARGUMENT,
+            PRIORITY_ARGUMENT,
+            request.priority.cli_value(),
+        ],
+        CommandErrorCode::AutomationFailed,
+        AUTOMATION_HELPER_ACTION_NAME,
+    )?;
 
     get_automation_status()
 }
 
 #[tauri::command]
 pub fn remove_codex_automation() -> Result<AutomationStatusResponse, CommandError> {
-    run_elevated_helper(&[REMOVE_AUTOMATION_ARGUMENT])?;
+    run_elevated_helper(
+        &[REMOVE_AUTOMATION_ARGUMENT],
+        CommandErrorCode::AutomationFailed,
+        AUTOMATION_HELPER_ACTION_NAME,
+    )?;
 
     get_automation_status()
 }
@@ -118,51 +121,6 @@ fn parse_priority_argument(arguments: &[String]) -> Result<ProcessPriorityReques
 
     ProcessPriorityRequest::parse(priority_value)
         .ok_or_else(|| format!("Unsupported priority: {priority_value}"))
-}
-
-fn run_elevated_helper(arguments: &[&str]) -> Result<(), CommandError> {
-    let helper_executable_path = create_elevated_helper_copy()?;
-    let parameters = arguments.join(" ");
-    let exit_code =
-        run_as_administrator_and_wait(&helper_executable_path, &parameters).map_err(|error| {
-            CommandError::new(
-                CommandErrorCode::WindowsApiFailed,
-                format!("Failed to run elevated automation helper: {error}"),
-            )
-        })?;
-    let _ = fs::remove_file(&helper_executable_path);
-
-    if exit_code == SUCCESS_PROCESS_EXIT_CODE {
-        return Ok(());
-    }
-
-    Err(CommandError::new(
-        CommandErrorCode::AutomationFailed,
-        format!("Elevated automation helper failed with exit code {exit_code}."),
-    ))
-}
-
-fn create_elevated_helper_copy() -> Result<PathBuf, CommandError> {
-    let current_executable_path = env::current_exe().map_err(|error| {
-        CommandError::new(
-            CommandErrorCode::AutomationFailed,
-            format!("Failed to resolve current executable: {error}"),
-        )
-    })?;
-    let helper_executable_path = env::temp_dir().join(format!(
-        "{ELEVATED_HELPER_FILE_PREFIX}-{}.{}",
-        process::id(),
-        ELEVATED_HELPER_FILE_EXTENSION
-    ));
-
-    fs::copy(&current_executable_path, &helper_executable_path).map_err(|error| {
-        CommandError::new(
-            CommandErrorCode::AutomationFailed,
-            format!("Failed to prepare elevated automation helper: {error}"),
-        )
-    })?;
-
-    Ok(helper_executable_path)
 }
 
 fn automation_error(message: String) -> CommandError {

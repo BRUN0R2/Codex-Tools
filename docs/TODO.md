@@ -21,6 +21,7 @@
 - [x] Implementar leitura e aplicacao de prioridade `Normal` ou `Alta`.
 - [x] Garantir que a prioridade seja escolhida pelo usuario e nunca automatica.
 - [x] Bloquear prioridade em tempo real.
+- [x] Persistir prioridade alta para todos os executaveis Codex via Registry.
 
 ## Interface Tauri
 
@@ -46,5 +47,7 @@
 - [ ] Validar abertura do Codex em runtime.
 - [ ] Validar aplicacao de prioridade `Normal`.
 - [ ] Validar aplicacao de prioridade `Alta`.
+- [ ] Validar instalacao e remocao da prioridade alta persistente via Registry.
+- [ ] Validar nova abertura do Codex ja em prioridade alta.
 - [ ] Validar instalacao e remocao limpa.
 - [ ] Validar tarefa apos reiniciar ou fazer logon.

@@ -16,12 +16,13 @@ impl CommandError {
     }
 }
 
-#[derive(Serialize)]
+#[derive(Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandErrorCode {
     AutomationFailed,
     CodexNotFound,
     InvalidState,
+    PersistentPriorityFailed,
     WindowsApiFailed,
 }
 

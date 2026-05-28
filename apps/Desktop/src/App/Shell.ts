@@ -3,15 +3,18 @@ import { formatProcessPriority, type ProcessPriority } from "../Domain/ProcessPr
 import { createAutomationActionPanel } from "../Ui/AutomationActionPanel";
 import { createCodexActionPanel } from "../Ui/CodexActionPanel";
 import { createCodexStatusPanel } from "../Ui/CodexStatusPanel";
+import { createPersistentPriorityActionPanel } from "../Ui/PersistentPriorityActionPanel";
 import { createPrioritySelector } from "../Ui/PrioritySelector";
 
 type ShellProps = Readonly<{
   state: AppState;
   onCodexRefresh: () => void;
   onInstallAutomation: () => void;
+  onInstallPersistentHighPriority: () => void;
   onOpenCodex: () => void;
   onPriorityChange: (priority: ProcessPriority) => void;
   onRemoveAutomation: () => void;
+  onRemovePersistentHighPriority: () => void;
 }>;
 
 type TextElementTagName = "h1" | "h2" | "p";
@@ -39,9 +42,11 @@ export function createShell({
   state,
   onCodexRefresh,
   onInstallAutomation,
+  onInstallPersistentHighPriority,
   onOpenCodex,
   onPriorityChange,
   onRemoveAutomation,
+  onRemovePersistentHighPriority,
 }: ShellProps): HTMLElementTagNameMap["section"] {
   const shell = document.createElement("section");
   shell.className = "AppShell";
@@ -73,6 +78,12 @@ export function createShell({
       codexStatus: state.codexStatus,
       selectedPriority: state.selectedPriority,
       onOpenCodex,
+    }),
+    createPersistentPriorityActionPanel({
+      actionStatus: state.actionStatus,
+      persistentPriorityStatus: state.persistentPriorityStatus,
+      onInstallPersistentHighPriority,
+      onRemovePersistentHighPriority,
     }),
     createAutomationActionPanel({
       actionStatus: state.actionStatus,
