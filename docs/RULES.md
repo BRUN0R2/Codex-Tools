@@ -1,67 +1,274 @@
-## Regras do Projeto
+# Constituição do Projeto
 
-### Base
+## Regra Suprema
 
-- Manter um repositorio Git local desde o inicio para facilitar restauracao e
-  seguranca.
-- Comitar toda mudanca concluida com uma mensagem clara sobre o que foi
-  implementado.
-- Usar mensagens de commit em ingles por padrao, com texto curto, claro e no
-  imperativo.
-- Manter `docs/TODO.md` sempre atualizado de forma limpa, enxuta, simples,
-  facil de entender e direto ao ponto.
-- Trabalhar sempre sobre uma base limpa, nova, funcional e sem
-  retrocompatibilidade.
-- Nao adicionar codigo, dependencias, logs, testes, arquivos ou configuracoes
-  sem necessidade real.
-- Nunca versionar informacoes confidenciais, como `.env`, chaves, tokens ou
-  dados privados.
-- Nada de testes extras, preferir testar em runtime.
-- O projeto deve ser direto ao ponto, sem enrolacao, sem desvios e implementar funções reais e funcionais.
+O Codex / IA deve seguir todas as regras do projeto rigorosamente e sem exceção.
 
-### Codigo
+Nenhuma implementação, otimização, abstração, refatoração, dependência, atalho ou decisão arquitetural pode violar as regras definidas neste documento.
 
-- Usar boas praticas de programacao, C++ moderno e o recurso mais recente,
-  seguro e estavel que o toolchain suportar, priorizando C++26 quando
-  disponivel.
-- Manter o codigo limpo, enxuto, semantico, modular, robusto, otimizado e facil
-  de evoluir.
-- Aplicar Single Responsibility Principle e Don't Repeat Yourself em codigo,
-  configuracao e documentacao.
-- Usar tipagem extremamente forte e nomes claros, sem ambiguidade.
-- Manter projeto, codigo, funcoes, estados e fluxos previsiveis, com entradas,
-  saidas, efeitos colaterais e erros explicitos.
-- Evitar numeros magicos; valores fixos devem ter nome, tipo e contexto.
-- Nao manter codigo morto, duplicado, obsoleto ou provisoriamente esquecido.
-- Nao criar arquivos de codigo proprios com nomes em snake_case ou separadores
-  artificiais; usar PascalCase sem `_`, como `ExemploExemplo.cpp`, salvo quando
-  uma convencao externa obrigatoria exigir outro formato.
+Quando existir conflito, a ordem de prioridade deve ser sempre:
 
-### Arquitetura
+1. Regras do projeto
+2. Integridade da arquitetura
+3. Manutenibilidade
+4. Previsibilidade
+5. Segurança
+6. Performance
+7. Velocidade de desenvolvimento
 
-- Organizar o projeto em modulos pequenos, coesos e com responsabilidade clara.
-- Preferir APIs pequenas, abstracoes simples e contratos explicitos.
-- Evitar comportamento implicito, fallback silencioso ou caminhos alternativos
-  que escondam falhas reais do sistema.
-- Nao esconder falhas de inicializacao com fallback silencioso.
-- Facilitar manutencao, atualizacao e adicao de novas funcoes sem espalhar
-  regras de negocio.
-- Criar menus interativos limpos, diretos e funcionais, sem configuracoes,
-  controles, textos ou estados extras que nao tenham uso real e imediato.
-- Simplificar continuamente partes separadas demais, redundantes ou dificeis de
-  atualizar.
-- Otimizar sem sacrificar clareza, seguranca ou manutencao.
+Velocidade nunca justifica degradação arquitetural.
 
-### Qualidade
+---
 
-- Verificar continuamente riscos de memory leaks, lifetime incorreto e uso
-  inseguro de recursos.
-- Preferir testes em runtime live, logs e smoke tests somente quando agregarem
-  valor real; evitar excesso e ruido.
-- Priorizar validacao em runtime live como fonte principal de confianca.
-- Nao criar nem rodar testes extras quando a mudanca puder ser validada de
-  forma direta no runtime.
-- Atualizar dependencias, configuracoes e praticas de seguranca sempre que
-  houver uma opcao moderna, segura e compativel com a base atual.
-- Antes de finalizar uma mudanca, revisar duplicacoes, codigo morto,
-  ambiguidade, seguranca e impacto de manutencao.
+## Regra Estrutural Prioritária
+
+A organização modular de pastas e arquivos é uma regra de alta prioridade.
+
+* Nenhum código novo deve ser criado em pastas genéricas ou acumuladas sem responsabilidade clara.
+* A estrutura de diretórios deve refletir módulos reais, pequenos, coesos e previsíveis.
+* Cada pasta deve possuir propósito explícito e conter apenas arquivos diretamente relacionados.
+* Quando a estrutura estiver ambígua, a modularização deve vir antes de novas funcionalidades.
+
+---
+
+# Filosofia Central
+
+O projeto deve permanecer:
+
+* Limpo
+* Previsível
+* Minimalista
+* Modular
+* Explícito
+* Fácil de manter
+* Escalável
+* Pronto para produção
+
+A base do código deve evoluir continuamente em direção à simplicidade, nunca à complexidade.
+
+Toda implementação deve resolver problemas reais usando a menor complexidade necessária.
+
+Evitar:
+
+* Overengineering
+* Abstrações prematuras
+* Soluções temporárias
+* Comportamentos ocultos
+* Fluxos implícitos
+* Caos defensivo
+* Inconsistência arquitetural
+
+O sistema deve continuar compreensível meses depois sem depender de contexto histórico.
+
+---
+
+# Regras do Repositório
+
+* Manter um repositório Git local desde o início.
+* Comitar toda mudança lógica concluída e validada.
+* Mensagens de commit devem:
+
+  * estar em inglês
+  * ser curtas
+  * usar verbo no imperativo
+  * descrever claramente mudanças reais
+* Manter `docs/TODO.md` minimalista, atualizado e acionável.
+* Nunca versionar segredos, credenciais, tokens ou dados privados.
+* Evitar arquivos, dependências, assets, logs ou ferramentas sem necessidade real.
+* Preferir uma base limpa e funcional ao invés de preservar compatibilidade obsoleta.
+* Evitar acumular dívida técnica intencionalmente.
+
+---
+
+# Regras de Arquitetura
+
+## Estrutura
+
+* Organizar sistemas em módulos pequenos e coesos.
+* Cada módulo deve possuir responsabilidade clara.
+* Preferir composição ao invés de herança.
+* Preferir contratos explícitos ao invés de comportamento implícito.
+* Preferir fluxos determinísticos ao invés de “mágica dinâmica”.
+* Preferir abstrações simples ao invés de camadas profundas de abstração.
+* Evitar objetos gigantes e acúmulo centralizado de lógica.
+* Regras de negócio não devem se espalhar de forma imprevisível.
+
+## Design
+
+* APIs devem permanecer pequenas e explícitas.
+* Entradas, saídas, efeitos colaterais e falhas devem ser sempre visíveis.
+* Nenhum fallback silencioso.
+* Nenhum caminho oculto de recuperação de inicialização.
+* Nenhuma falsa resiliência escondendo falhas reais.
+* Erros devem aparecer de forma clara e previsível.
+* Transições de estado devem ser rastreáveis.
+
+## Evolução
+
+* Sistemas devem ser preparados para expansão futura sem reescritas destrutivas.
+* Refatorações devem simplificar o projeto, não reorganizar complexidade.
+* Reduzir fragmentação sempre que possível.
+* Remover continuamente código morto, obsoleto ou duplicado.
+
+---
+
+# Regras de Código
+
+## Estilo
+
+* Usar C++ moderno e os recursos mais seguros e estáveis suportados pelo toolchain.
+* Priorizar C++26 sempre que realisticamente disponível.
+* Manter o código semântico, limpo, direto e otimizado.
+* Priorizar legibilidade acima de “esperteza”.
+* Usar tipagem forte sempre que possível.
+* Evitar nomes ambíguos.
+* Evitar indireção desnecessária.
+* Evitar complexidade excessiva com templates sem justificativa.
+
+## Nomeação
+
+* Usar nomes claros e descritivos.
+* Evitar abreviações, salvo quando universalmente conhecidas.
+* Evitar prefixos e sufixos artificiais.
+* Arquivos internos do projeto devem usar PascalCase sem separadores.
+* Snake_case só é permitido quando exigido externamente.
+
+## Lógica
+
+Aplicar:
+
+* Single Responsibility Principle
+* DRY
+* Ownership explícito
+* Gerenciamento explícito de lifetime
+
+Evitar:
+
+* Números mágicos
+* Código morto
+* Código comentado obsoleto
+* Mutação oculta de estado
+* Ownership implícito
+* Manipulação insegura de recursos
+
+Constantes devem sempre possuir:
+
+* significado semântico
+* tipo explícito
+* clareza contextual
+
+---
+
+# Regras de Runtime e Confiabilidade
+
+* Validação em runtime é a principal fonte de confiança.
+* Preferir validação live ao invés de excesso de testes automatizados.
+* Criar testes apenas quando entregarem valor real e mensurável.
+* Evitar testes barulhentos, redundantes ou caros de manter.
+* Logs devem existir apenas quando operacionalmente úteis.
+* Evitar poluição de debug.
+
+O sistema deve validar continuamente:
+
+* segurança de memória
+* lifetime de recursos
+* correção de ownership
+* ordem de inicialização
+* visibilidade de falhas
+
+---
+
+# Regras de Performance
+
+* Otimizar com responsabilidade.
+* Nunca sacrificar manutenção por micro-otimizações.
+* Evitar alocações desnecessárias.
+* Evitar overhead desnecessário em runtime.
+* Priorizar performance estável e previsível.
+* Medir antes de otimizar agressivamente.
+
+Performance deve ser intencional, nunca acidental.
+
+---
+
+# Regras de Dependências
+
+* Toda dependência deve justificar sua existência.
+* Preferir soluções internas quando a complexidade for baixa.
+* Evitar excesso de dependências.
+* Manter integrações externas isoladas.
+* Atualizar dependências regularmente para versões modernas e seguras.
+
+---
+
+# Regras de UI e UX
+
+* Interfaces devem permanecer limpas, diretas e funcionais.
+* Nenhuma complexidade visual sem valor prático.
+* Evitar estados, opções ou controles sem utilidade real.
+* Menus e fluxos devem minimizar atrito.
+* A densidade de informação deve permanecer organizada e intencional.
+
+---
+
+# Regras Operacionais da IA
+
+A IA deve:
+
+* Pensar antes de implementar.
+* Preservar consistência arquitetural.
+* Detectar riscos futuros de manutenção.
+* Alertar violações arquiteturais antes de prosseguir.
+* Evitar implementações especulativas.
+* Nunca inventar APIs, sistemas ou comportamentos inexistentes.
+* Evitar soluções parciais e inacabadas.
+* Preferir implementações completas e funcionais.
+
+Antes de finalizar qualquer mudança, sempre revisar:
+
+* duplicação
+* código morto
+* ambiguidade
+* ownership inseguro
+* impacto de manutenção
+* consistência arquitetural
+
+---
+
+# Padrões Proibidos
+
+Evitar explicitamente:
+
+* Abuso de Singleton
+* Abuso de Service Locator
+* Globais ocultos
+* Dependências circulares
+* Árvores profundas de herança
+* Mutação de estado sem ownership claro
+* God Classes
+* Abuso de reflection em runtime
+* Ownership implícito de recursos
+
+---
+
+# Regras de Decisão de Engenharia
+
+Quando múltiplas soluções existirem, preferir sempre a que:
+
+1. Reduz manutenção futura
+2. Melhora previsibilidade
+3. Reduz complexidade oculta
+4. Minimiza acoplamento
+5. Facilita debugging
+6. Possui menos partes móveis
+7. Preserva consistência arquitetural
+
+---
+
+# Diretiva Final
+
+Todas as futuras instruções devem ser interpretadas através desta constituição.
+
+Caso uma solicitação entre em conflito com estas regras, o conflito deve ser explicitamente informado antes da implementação continuar.
+
+A integridade de longo prazo do projeto é obrigatória e inegociável.
