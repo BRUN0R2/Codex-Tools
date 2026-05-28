@@ -22,13 +22,18 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Manter o app desktop em `apps/Desktop`.
 - Manter frontend, backend Tauri e futuro core nativo isolados por responsabilidade.
 - Usar convencoes de modulo do Rust no backend Tauri quando exigidas pelo toolchain.
+- Manter `docs/RULES.md` alinhado a Rust, TypeScript, Tauri e APIs Windows isoladas.
 - O fluxo principal usa prioridade alta fixa para todos os processos Codex.
 - Prioridade em tempo real permanece fora do produto.
 - Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
 - Codex Tools deve pedir elevacao de administrador antes da janela abrir.
+- A release embute manifest Windows com `requireAdministrator`.
+- O token elevado ativa `SeDebugPrivilege` e `SeIncreaseBasePriorityPrivilege` para gerenciar processos Codex.
+- A janela usa CSP explicito porque o app roda elevado.
 - Abrir Codex com elevacao via API nativa do Windows.
 - Reaplicar prioridade alta por alguns ciclos curtos para cobrir os processos que surgem apos o carregamento inicial.
 - A estabilizacao de prioridade roda em segundo plano para manter a interface responsiva.
+- O status da estabilizacao deve expor `Idle`, `Running`, `Succeeded` e `Failed`.
 - Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
 - Elevação `normal` no console indica processo existente ou processo que nao foi reaberto com token administrativo.
 - Manter automacao e Registry fora da interface simplificada.
@@ -38,3 +43,7 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - `npm run build`.
 - `cargo check --manifest-path apps/Desktop/src-tauri/Cargo.toml`.
 - `cargo clippy --manifest-path apps/Desktop/src-tauri/Cargo.toml -- -D warnings`.
+- `npm run tauri build`.
+- `cargo fmt --manifest-path apps/Desktop/src-tauri/Cargo.toml -- --check`.
+- `npm audit --audit-level=high`.
+- Manifest da release configurado por `WindowsAppManifest.xml` e validado pelo build Tauri.

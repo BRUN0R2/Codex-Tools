@@ -126,22 +126,25 @@ O sistema deve continuar compreensível meses depois sem depender de contexto hi
 
 ## Estilo
 
-* Usar C++ moderno e os recursos mais seguros e estáveis suportados pelo toolchain.
-* Priorizar C++26 sempre que realisticamente disponível.
+* Usar Rust moderno no backend Tauri e TypeScript moderno no frontend.
+* Usar APIs nativas do Windows apenas em módulos isolados, explícitos e pequenos.
+* Priorizar as versões modernas, seguras e estáveis suportadas pelo toolchain atual.
+* Manter TypeScript em modo estrito e Rust sem warnings relevantes.
 * Manter o código semântico, limpo, direto e otimizado.
 * Priorizar legibilidade acima de “esperteza”.
 * Usar tipagem forte sempre que possível.
 * Evitar nomes ambíguos.
 * Evitar indireção desnecessária.
-* Evitar complexidade excessiva com templates sem justificativa.
+* Evitar complexidade excessiva com generics, traits ou tipos condicionais sem justificativa.
 
 ## Nomeação
 
 * Usar nomes claros e descritivos.
 * Evitar abreviações, salvo quando universalmente conhecidas.
 * Evitar prefixos e sufixos artificiais.
-* Arquivos internos do projeto devem usar PascalCase sem separadores.
-* Snake_case só é permitido quando exigido externamente.
+* Arquivos internos de TypeScript devem usar PascalCase sem separadores.
+* Módulos Rust devem seguir as convenções do toolchain em snake_case.
+* Snake_case em TypeScript só é permitido quando exigido externamente.
 
 ## Lógica
 

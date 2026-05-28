@@ -4,6 +4,7 @@ import type {
   CodexProcessPriority,
   CodexStatus,
 } from "./CodexInstallation";
+import type { PriorityStabilization } from "./PriorityStabilization";
 
 export type ConsoleMessage = string;
 
@@ -15,9 +16,15 @@ export function createCodexConsoleMessages(status: CodexStatus): readonly Consol
       return ["Verificando Codex."];
     case "Found":
     case "NotFound":
-      return createProcessMessages(status.processes);
+      return appendPriorityStabilizationMessages(
+        createProcessMessages(status.processes),
+        status.priorityStabilization
+      );
     case "Failed":
-      return [`Erro: ${status.message}`];
+      return appendPriorityStabilizationMessages(
+        [`Erro: ${status.message}`],
+        status.priorityStabilization
+      );
   }
 }
 
@@ -64,4 +71,39 @@ function formatPriority(priority: CodexProcessPriority): string {
     case "Unknown":
       return "indisponivel";
   }
+}
+
+function appendPriorityStabilizationMessages(
+  messages: readonly ConsoleMessage[],
+  priorityStabilization: PriorityStabilization
+): readonly ConsoleMessage[] {
+  const priorityMessages = createPriorityStabilizationMessages(priorityStabilization);
+  return priorityMessages.length === 0 ? messages : [...messages, ...priorityMessages];
+}
+
+function createPriorityStabilizationMessages(
+  priorityStabilization: PriorityStabilization
+): readonly ConsoleMessage[] {
+  switch (priorityStabilization.state) {
+    case "Idle":
+      return [];
+    case "Running":
+      return ["Estabilizando prioridade alta do Codex."];
+    case "Succeeded":
+      return [createPrioritySucceededMessage(priorityStabilization)];
+    case "Failed":
+      return [
+        `Erro de prioridade: ${priorityStabilization.message ?? "falha desconhecida."}`,
+      ];
+  }
+}
+
+function createPrioritySucceededMessage(
+  priorityStabilization: PriorityStabilization
+): ConsoleMessage {
+  if (priorityStabilization.updatedProcessIds.length === 0) {
+    return `Prioridade alta estabilizada em ${priorityStabilization.attempts} tentativas.`;
+  }
+
+  return `Prioridade alta estabilizada em ${priorityStabilization.attempts} tentativas | PIDs: ${priorityStabilization.updatedProcessIds.join(", ")}`;
 }

@@ -3,6 +3,7 @@
 ## Base
 
 - [x] Manter regras do projeto em `docs/RULES.md`.
+- [x] Alinhar regras do projeto a Rust, TypeScript, Tauri e APIs Windows isoladas.
 - [x] Criar estrutura modular do projeto.
 - [x] Configurar app desktop Tauri.
 - [x] Registrar decisoes tecnicas em `docs/INFO.md`.
@@ -11,8 +12,12 @@
 
 - [x] Detectar instalacao do Codex no Windows.
 - [x] Abrir Codex com elevacao de administrador.
+- [x] Embutir manifest `requireAdministrator` na release.
+- [x] Ativar privilegios seguros do token elevado para gerenciar processos.
+- [x] Definir CSP explicito para o app elevado.
 - [x] Aplicar prioridade alta nos processos Codex.
 - [x] Estabilizar prioridade alta durante o carregamento completo do Codex.
+- [x] Expor sucesso ou falha da estabilizacao de prioridade.
 - [x] Executar estabilizacao de prioridade sem bloquear a interface.
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.

@@ -1,3 +1,10 @@
+import {
+  IDLE_PRIORITY_STABILIZATION,
+  parsePriorityStabilizationResponse,
+  type PriorityStabilization,
+  type PriorityStabilizationResponse,
+} from "./PriorityStabilization";
+
 export type CodexProcessPriority =
   | "Idle"
   | "BelowNormal"
@@ -20,26 +27,31 @@ export type CodexStatus =
   | Readonly<{
       state: "Unchecked";
       processes: readonly CodexProcess[];
+      priorityStabilization: PriorityStabilization;
     }>
   | Readonly<{
       state: "Checking";
       processes: readonly CodexProcess[];
+      priorityStabilization: PriorityStabilization;
     }>
   | Readonly<{
       state: "Found";
       executablePath: string;
       checkedPaths: readonly string[];
       processes: readonly CodexProcess[];
+      priorityStabilization: PriorityStabilization;
     }>
   | Readonly<{
       state: "NotFound";
       checkedPaths: readonly string[];
       processes: readonly CodexProcess[];
+      priorityStabilization: PriorityStabilization;
     }>
   | Readonly<{
       state: "Failed";
       message: string;
       processes: readonly CodexProcess[];
+      priorityStabilization: PriorityStabilization;
     }>;
 
 export type CodexStatusResponse = Readonly<{
@@ -47,6 +59,7 @@ export type CodexStatusResponse = Readonly<{
   executablePath: string | null;
   checkedPaths: readonly string[];
   processes: readonly CodexProcessResponse[];
+  priorityStabilization: PriorityStabilizationResponse;
 }>;
 
 export type CodexProcessResponse = Readonly<{
@@ -59,21 +72,27 @@ export type CodexProcessResponse = Readonly<{
 export const UNCHECKED_CODEX_STATUS: CodexStatus = {
   state: "Unchecked",
   processes: [],
+  priorityStabilization: IDLE_PRIORITY_STABILIZATION,
 };
 
 export const CHECKING_CODEX_STATUS: CodexStatus = {
   state: "Checking",
   processes: [],
+  priorityStabilization: IDLE_PRIORITY_STABILIZATION,
 };
 
 export function parseCodexStatusResponse(response: CodexStatusResponse): CodexStatus {
   const processes = parseCodexProcesses(response.processes);
+  const priorityStabilization = parsePriorityStabilizationResponse(
+    response.priorityStabilization
+  );
 
   if (!response.found) {
     return {
       state: "NotFound",
       checkedPaths: response.checkedPaths,
       processes,
+      priorityStabilization,
     };
   }
 
@@ -86,6 +105,7 @@ export function parseCodexStatusResponse(response: CodexStatusResponse): CodexSt
     executablePath: response.executablePath,
     checkedPaths: response.checkedPaths,
     processes,
+    priorityStabilization,
   };
 }
 
@@ -94,6 +114,7 @@ export function createFailedCodexStatus(message: string): CodexStatus {
     state: "Failed",
     message,
     processes: [],
+    priorityStabilization: IDLE_PRIORITY_STABILIZATION,
   };
 }
 

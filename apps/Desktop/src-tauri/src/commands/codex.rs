@@ -1,21 +1,16 @@
-use std::collections::BTreeSet;
-use std::thread;
-use std::time::Duration;
-
 use serde::Serialize;
+use tauri::State;
 
 use crate::contracts::{CommandError, CommandErrorCode};
 use crate::platform::windows_codex::locate_codex_installation;
 use crate::platform::windows_process::{
-    CodexProcessInspection, PriorityApplication, WindowsProcessElevationState,
-    WindowsProcessPriorityState, apply_high_priority_to_running_codex,
-    inspect_running_codex_processes, launch_as_administrator,
+    CodexProcessInspection, WindowsProcessElevationState, WindowsProcessPriorityState,
+    inspect_running_codex_processes,
 };
-
-const PRIORITY_APPLICATION_MAX_ATTEMPTS: usize = 40;
-const PRIORITY_APPLICATION_MIN_ATTEMPTS: usize = 24;
-const PRIORITY_APPLICATION_RETRY_DELAY: Duration = Duration::from_millis(500);
-const REQUIRED_STABLE_HIGH_PRIORITY_ATTEMPTS: usize = 3;
+use crate::platform::windows_shell::launch_as_administrator;
+use crate::priority::stabilization::{
+    PriorityStabilizationSnapshot, PriorityStabilizationStore, start_high_priority_stabilization,
+};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -24,6 +19,7 @@ pub struct CodexStatusResponse {
     pub executable_path: Option<String>,
     pub checked_paths: Vec<String>,
     pub processes: Vec<CodexProcessResponse>,
+    pub priority_stabilization: PriorityStabilizationSnapshot,
 }
 
 #[derive(Serialize)]
@@ -67,10 +63,18 @@ pub enum CodexLaunchPriorityResponse {
 }
 
 #[tauri::command]
-pub fn get_codex_status() -> Result<CodexStatusResponse, CommandError> {
+pub fn get_codex_status(
+    priority_stabilization: State<'_, PriorityStabilizationStore>,
+) -> Result<CodexStatusResponse, CommandError> {
     let installation = locate_codex_installation();
     let checked_paths = installation.checked_paths_as_strings();
     let executable_path = installation.executable_path_as_string();
+    let priority_stabilization = priority_stabilization.snapshot().map_err(|error| {
+        CommandError::new(
+            CommandErrorCode::InvalidState,
+            format!("Failed to inspect priority stabilization status: {error}"),
+        )
+    })?;
     let processes = inspect_running_codex_processes()
         .map_err(|error| {
             CommandError::new(
@@ -94,15 +98,20 @@ pub fn get_codex_status() -> Result<CodexStatusResponse, CommandError> {
         executable_path,
         checked_paths,
         processes,
+        priority_stabilization,
     })
 }
 
 #[tauri::command]
-pub fn open_codex() -> Result<CodexLaunchResponse, CommandError> {
-    launch_codex_with_high_priority()
+pub fn open_codex(
+    priority_stabilization: State<'_, PriorityStabilizationStore>,
+) -> Result<CodexLaunchResponse, CommandError> {
+    launch_codex_with_high_priority(priority_stabilization.inner().clone())
 }
 
-fn launch_codex_with_high_priority() -> Result<CodexLaunchResponse, CommandError> {
+fn launch_codex_with_high_priority(
+    priority_stabilization: PriorityStabilizationStore,
+) -> Result<CodexLaunchResponse, CommandError> {
     let installation = locate_codex_installation();
     let executable_path = installation.executable_path().ok_or_else(|| {
         CommandError::new(
@@ -118,71 +127,18 @@ fn launch_codex_with_high_priority() -> Result<CodexLaunchResponse, CommandError
         )
     })?;
 
-    spawn_high_priority_stabilization();
+    start_high_priority_stabilization(priority_stabilization).map_err(|error| {
+        CommandError::new(
+            CommandErrorCode::InvalidState,
+            format!("Failed to start priority stabilization: {error}"),
+        )
+    })?;
 
     Ok(CodexLaunchResponse {
         executable_path: executable_path.to_string_lossy().into_owned(),
         priority: CodexLaunchPriorityResponse::High,
         priority_stabilization_started: true,
     })
-}
-
-fn spawn_high_priority_stabilization() {
-    thread::spawn(|| {
-        let _ = apply_high_priority_with_retry();
-    });
-}
-
-fn apply_high_priority_with_retry() -> Result<PriorityApplication, CommandError> {
-    let mut updated_process_ids = BTreeSet::new();
-    let mut stable_high_priority_attempts = 0usize;
-
-    for attempt_index in 0..PRIORITY_APPLICATION_MAX_ATTEMPTS {
-        let priority_application = apply_high_priority_to_running_codex().map_err(|error| {
-            CommandError::new(
-                CommandErrorCode::WindowsApiFailed,
-                format!("Failed to apply Codex high priority: {error}"),
-            )
-        })?;
-
-        updated_process_ids.extend(priority_application.updated_process_ids);
-
-        let processes = inspect_running_codex_processes().map_err(|error| {
-            CommandError::new(
-                CommandErrorCode::WindowsApiFailed,
-                format!("Failed to inspect Codex priority after update: {error}"),
-            )
-        })?;
-
-        if codex_processes_are_high_priority(&processes) {
-            stable_high_priority_attempts += 1;
-        } else {
-            stable_high_priority_attempts = 0;
-        }
-
-        let minimum_attempts_completed = attempt_index + 1 >= PRIORITY_APPLICATION_MIN_ATTEMPTS;
-        let priority_is_stable =
-            stable_high_priority_attempts >= REQUIRED_STABLE_HIGH_PRIORITY_ATTEMPTS;
-
-        if minimum_attempts_completed && priority_is_stable {
-            break;
-        }
-
-        if attempt_index + 1 < PRIORITY_APPLICATION_MAX_ATTEMPTS {
-            thread::sleep(PRIORITY_APPLICATION_RETRY_DELAY);
-        }
-    }
-
-    Ok(PriorityApplication {
-        updated_process_ids: updated_process_ids.into_iter().collect(),
-    })
-}
-
-fn codex_processes_are_high_priority(processes: &[CodexProcessInspection]) -> bool {
-    !processes.is_empty()
-        && processes
-            .iter()
-            .all(|process| matches!(process.priority, WindowsProcessPriorityState::High))
 }
 
 impl From<CodexProcessInspection> for CodexProcessResponse {

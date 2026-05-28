@@ -13,7 +13,10 @@ import {
   type AppState,
 } from "./AppState";
 import { createShell } from "./Shell";
-import { codexStatusHasOnlyHighPriorityProcesses } from "../Domain/RuntimeStatus";
+import {
+  priorityStabilizationHasFailed,
+  priorityStabilizationHasFinished,
+} from "../Domain/PriorityStabilization";
 
 const OPEN_CODEX_ACTION_LABEL = "Abrindo Codex";
 const CODEX_OPEN_STATUS_POLL_ATTEMPTS = 36;
@@ -111,13 +114,26 @@ export function mountApp(root: HTMLElement): void {
         : setFailedCodexStatus(state, result.error.message);
       render();
 
-      if (result.ok && codexStatusHasOnlyHighPriorityProcesses(result.value)) {
+      if (result.ok && priorityStabilizationHasFailed(result.value.priorityStabilization)) {
+        state = setFailedActionStatus(
+          state,
+          result.value.priorityStabilization.message ??
+            "Nao foi possivel estabilizar a prioridade alta do Codex."
+        );
+        render();
+        return;
+      }
+
+      if (result.ok && priorityStabilizationHasFinished(result.value.priorityStabilization)) {
         return;
       }
     }
 
     if (state.runtimeStatus === "Opening") {
-      state = setWaitingRuntimeStatus(state);
+      state = setFailedActionStatus(
+        setWaitingRuntimeStatus(state),
+        "Nao foi possivel confirmar a prioridade alta do Codex no tempo esperado."
+      );
       render();
     }
   }

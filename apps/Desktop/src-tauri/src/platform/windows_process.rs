@@ -1,11 +1,6 @@
-use std::env;
-use std::ffi::OsStr;
-use std::iter::once;
 use std::mem::size_of;
-use std::os::windows::ffi::OsStrExt;
-use std::path::Path;
 
-use windows::Win32::Foundation::{HANDLE, HWND};
+use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
 use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
@@ -14,18 +9,14 @@ use windows::Win32::System::Threading::{
     ABOVE_NORMAL_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, GetCurrentProcess, GetPriorityClass,
     HIGH_PRIORITY_CLASS, IDLE_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS, OpenProcess, OpenProcessToken,
     PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION, REALTIME_PRIORITY_CLASS,
-    SetPriorityClass, WaitForInputIdle,
+    SetPriorityClass,
 };
-use windows::Win32::UI::Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW};
-use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
-use windows::core::{Error, PCWSTR};
+use windows::core::Error;
 
 use crate::platform::windows_handle::OwnedWindowsHandle;
 
-const RUN_AS_ADMINISTRATOR_VERB: &str = "runas";
 const CODEX_DESKTOP_PROCESS_NAME: &str = "Codex.exe";
 const CODEX_PROCESS_NAME: &str = "codex.exe";
-const WAIT_FOR_INPUT_IDLE_TIMEOUT_MILLISECONDS: u32 = 1_500;
 
 #[derive(Clone, Copy)]
 pub enum WindowsProcessPriorityState {
@@ -59,32 +50,6 @@ struct CodexProcessEntry {
 
 pub struct PriorityApplication {
     pub updated_process_ids: Vec<u32>,
-}
-
-pub fn relaunch_current_process_as_administrator_if_needed() -> Result<bool, String> {
-    if current_process_is_elevated()
-        .map_err(|error| format!("Failed to inspect Codex Tools elevation: {error}"))?
-    {
-        return Ok(false);
-    }
-
-    let executable_path = env::current_exe()
-        .map_err(|error| format!("Failed to resolve Codex Tools executable path: {error}"))?;
-    let parameters = current_process_parameters();
-    let parameters = (!parameters.is_empty()).then_some(parameters.as_str());
-
-    shell_execute(
-        &executable_path,
-        parameters,
-        Some(RUN_AS_ADMINISTRATOR_VERB),
-    )
-    .map_err(|error| format!("Failed to relaunch Codex Tools as administrator: {error}"))?;
-
-    Ok(true)
-}
-
-pub fn launch_as_administrator(executable_path: &Path) -> Result<(), Error> {
-    shell_execute(executable_path, None, Some(RUN_AS_ADMINISTRATOR_VERB))
 }
 
 pub fn apply_high_priority_to_running_codex() -> Result<PriorityApplication, Error> {
@@ -200,7 +165,7 @@ fn process_priority_from_handle(process_handle: HANDLE) -> WindowsProcessPriorit
     }
 }
 
-fn current_process_is_elevated() -> Result<bool, Error> {
+pub fn current_process_is_elevated() -> Result<bool, Error> {
     let process_handle = unsafe { GetCurrentProcess() };
 
     process_is_elevated(process_handle)
@@ -238,47 +203,6 @@ fn process_is_elevated(process_handle: HANDLE) -> Result<bool, Error> {
     Ok(token_elevation.TokenIsElevated != 0)
 }
 
-fn shell_execute(
-    executable_path: &Path,
-    parameters: Option<&str>,
-    verb: Option<&str>,
-) -> Result<(), Error> {
-    let verb = verb.map(wide_from_str);
-    let file = wide_from_os_str(executable_path.as_os_str());
-    let parameters = parameters.map(wide_from_str);
-
-    let mut execute_info = SHELLEXECUTEINFOW {
-        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
-        fMask: SEE_MASK_NOCLOSEPROCESS,
-        hwnd: HWND::default(),
-        lpVerb: verb
-            .as_ref()
-            .map_or(PCWSTR::null(), |value| PCWSTR::from_raw(value.as_ptr())),
-        lpFile: PCWSTR::from_raw(file.as_ptr()),
-        lpParameters: parameters
-            .as_ref()
-            .map_or(PCWSTR::null(), |value| PCWSTR::from_raw(value.as_ptr())),
-        nShow: SW_SHOWNORMAL.0,
-        ..Default::default()
-    };
-
-    unsafe {
-        ShellExecuteExW(&mut execute_info)?;
-    }
-
-    let process_handle =
-        OwnedWindowsHandle::new(execute_info.hProcess).ok_or_else(Error::from_thread)?;
-
-    unsafe {
-        let _ = WaitForInputIdle(
-            process_handle.raw(),
-            WAIT_FOR_INPUT_IDLE_TIMEOUT_MILLISECONDS,
-        );
-    }
-
-    Ok(())
-}
-
 fn is_codex_process_name(process_name: &str) -> bool {
     process_name.eq_ignore_ascii_case(CODEX_DESKTOP_PROCESS_NAME)
         || process_name.eq_ignore_ascii_case(CODEX_PROCESS_NAME)
@@ -292,55 +216,4 @@ fn process_name_from_entry(process_entry: &PROCESSENTRY32W) -> String {
         .unwrap_or(process_entry.szExeFile.len());
 
     String::from_utf16_lossy(&process_entry.szExeFile[..length])
-}
-
-fn current_process_parameters() -> String {
-    env::args_os()
-        .skip(1)
-        .map(|argument| quote_windows_argument(&argument.to_string_lossy()))
-        .collect::<Vec<String>>()
-        .join(" ")
-}
-
-fn quote_windows_argument(value: &str) -> String {
-    if !value.is_empty()
-        && !value
-            .chars()
-            .any(|character| character.is_whitespace() || character == '"')
-    {
-        return value.to_owned();
-    }
-
-    let mut quoted_argument = String::from("\"");
-    let mut pending_backslash_count = 0usize;
-
-    for character in value.chars() {
-        match character {
-            '\\' => {
-                pending_backslash_count += 1;
-            }
-            '"' => {
-                quoted_argument.push_str(&"\\".repeat((pending_backslash_count * 2) + 1));
-                quoted_argument.push('"');
-                pending_backslash_count = 0;
-            }
-            _ => {
-                quoted_argument.push_str(&"\\".repeat(pending_backslash_count));
-                quoted_argument.push(character);
-                pending_backslash_count = 0;
-            }
-        }
-    }
-
-    quoted_argument.push_str(&"\\".repeat(pending_backslash_count * 2));
-    quoted_argument.push('"');
-    quoted_argument
-}
-
-fn wide_from_os_str(value: &OsStr) -> Vec<u16> {
-    value.encode_wide().chain(once(0)).collect()
-}
-
-fn wide_from_str(value: &str) -> Vec<u16> {
-    OsStr::new(value).encode_wide().chain(once(0)).collect()
 }
