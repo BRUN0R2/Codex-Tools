@@ -25,10 +25,10 @@
 ## Interface Tauri
 
 - [x] Criar app Tauri usando a versao mais atualizada no momento da implementacao.
-- [ ] Criar tela principal direta para controlar o Codex.
-- [ ] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
+- [x] Criar tela principal direta para controlar o Codex.
+- [x] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
 - [ ] Adicionar acoes para abrir Codex, instalar automacao e remover automacao.
-- [ ] Evitar textos, controles e estados sem uso real.
+- [x] Evitar textos, controles e estados sem uso real.
 
 ## Automacao
 

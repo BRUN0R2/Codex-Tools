@@ -1,3 +1,12 @@
+import type { AppState } from "./AppState";
+import { formatProcessPriority, type ProcessPriority } from "../Domain/ProcessPriority";
+import { createPrioritySelector } from "../Ui/PrioritySelector";
+
+type ShellProps = Readonly<{
+  state: AppState;
+  onPriorityChange: (priority: ProcessPriority) => void;
+}>;
+
 type TextElementTagName = "h1" | "h2" | "p";
 
 function createTextElement<TagName extends TextElementTagName>(
@@ -11,7 +20,15 @@ function createTextElement<TagName extends TextElementTagName>(
   return element;
 }
 
-export function createShell(): HTMLElementTagNameMap["section"] {
+function createStatusText(state: AppState): string {
+  if (state.selectedPriority === null) {
+    return "Prioridade nao definida";
+  }
+
+  return `Prioridade ${formatProcessPriority(state.selectedPriority)}`;
+}
+
+export function createShell({ state, onPriorityChange }: ShellProps): HTMLElementTagNameMap["section"] {
   const shell = document.createElement("section");
   shell.className = "AppShell";
 
@@ -21,14 +38,18 @@ export function createShell(): HTMLElementTagNameMap["section"] {
   const heading = document.createElement("div");
   heading.append(
     createTextElement("h1", "AppTitle", "Codex Tools"),
-    createTextElement("p", "AppStatus", "Base pronta")
+    createTextElement("p", "AppStatus", createStatusText(state))
   );
 
   const panel = document.createElement("section");
-  panel.className = "Panel";
+  panel.className = "ControlSurface";
+
   panel.append(
     createTextElement("h2", "SectionTitle", "Controle"),
-    createTextElement("p", "MutedText", "Aguardando comandos nativos.")
+    createPrioritySelector({
+      selectedPriority: state.selectedPriority,
+      onChange: onPriorityChange,
+    })
   );
 
   header.append(heading);

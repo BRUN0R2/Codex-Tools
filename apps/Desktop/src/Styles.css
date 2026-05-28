@@ -1,6 +1,6 @@
 :root {
   color: #171a1f;
-  background: #f4f6f8;
+  background: #f5f7fa;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
@@ -13,13 +13,8 @@
 
 body {
   margin: 0;
-  min-width: 720px;
+  min-width: 360px;
   min-height: 520px;
-}
-
-button,
-select {
-  font: inherit;
 }
 
 .AppShell {
@@ -49,10 +44,15 @@ select {
   margin: 4px 0 0;
 }
 
-.Panel {
+.ControlSurface {
   align-content: start;
+  background: #ffffff;
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  box-sizing: border-box;
   display: grid;
-  gap: 16px;
+  gap: 24px;
+  padding: 24px;
 }
 
 .SectionTitle {
@@ -61,7 +61,72 @@ select {
   margin: 0;
 }
 
-.MutedText {
-  color: #53606f;
+.PrioritySelector {
+  border: 0;
+  display: grid;
+  gap: 10px;
   margin: 0;
+  min-inline-size: 0;
+  padding: 0;
+}
+
+.FieldLabel {
+  color: #353d49;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 0;
+}
+
+.SegmentedControl {
+  background: #eef2f6;
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 4px;
+  grid-template-columns: repeat(2, minmax(120px, 1fr));
+  max-width: 360px;
+  padding: 4px;
+}
+
+.SegmentedInput {
+  opacity: 0;
+  pointer-events: none;
+  position: absolute;
+}
+
+.SegmentedOption {
+  border-radius: 6px;
+  box-sizing: border-box;
+  color: #353d49;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+  min-height: 40px;
+  padding: 13px 14px;
+  text-align: center;
+  user-select: none;
+}
+
+.SegmentedInput:checked + .SegmentedOption {
+  background: #1f6feb;
+  color: #ffffff;
+}
+
+.SegmentedInput:focus-visible + .SegmentedOption {
+  outline: 2px solid #2da44e;
+  outline-offset: 2px;
+}
+
+@media (max-width: 760px) {
+  .AppHeader {
+    align-items: start;
+    flex-direction: column;
+  }
+
+  .SegmentedControl {
+    grid-template-columns: 1fr;
+    max-width: none;
+  }
 }
