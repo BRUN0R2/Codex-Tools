@@ -21,10 +21,13 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Usar npm porque ja esta instalado e evita adicionar um gerenciador extra.
 - Manter o app desktop em `apps/Desktop`.
 - Manter frontend, backend Tauri e futuro core nativo isolados por responsabilidade.
+- Usar convencoes de modulo do Rust no backend Tauri quando exigidas pelo toolchain.
 - Prioridade de processo deve ser escolha explicita do usuario: `Normal` ou `Alta`.
 - Prioridade em tempo real permanece bloqueada.
+- Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
 
 ## Validacao atual
 
 - `npm run build`.
+- `cargo check --manifest-path apps/Desktop/src-tauri/Cargo.toml`.
 - `npm run tauri build`.

@@ -17,6 +17,10 @@ body {
   min-height: 520px;
 }
 
+button {
+  font: inherit;
+}
+
 .AppShell {
   box-sizing: border-box;
   display: grid;
@@ -59,6 +63,43 @@ body {
   font-size: 15px;
   font-weight: 700;
   margin: 0;
+}
+
+.CodexStatusPanel {
+  align-items: center;
+  border: 1px solid #d8dee7;
+  border-radius: 8px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 14px;
+}
+
+.CodexStatusText {
+  color: #353d49;
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.PrimaryButton {
+  background: #171a1f;
+  border: 1px solid #171a1f;
+  border-radius: 8px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.PrimaryButton:disabled {
+  background: #eef2f6;
+  border-color: #d8dee7;
+  color: #7a8491;
+  cursor: wait;
 }
 
 .PrioritySelector {
@@ -128,5 +169,9 @@ body {
   .SegmentedControl {
     grid-template-columns: 1fr;
     max-width: none;
+  }
+
+  .CodexStatusPanel {
+    grid-template-columns: 1fr;
   }
 }

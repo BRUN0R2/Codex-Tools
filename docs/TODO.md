@@ -9,14 +9,14 @@
 
 ## Arquitetura
 
-- [ ] Separar frontend Tauri, backend nativo e modulos de plataforma.
-- [ ] Definir contratos explicitos para comandos, estados e erros.
-- [ ] Manter cada modulo pequeno, coeso e com responsabilidade unica.
-- [ ] Evitar fallback silencioso e comportamento implicito.
+- [x] Separar frontend Tauri, backend nativo e modulos de plataforma.
+- [x] Definir contratos explicitos para comandos, estados e erros.
+- [x] Manter cada modulo pequeno, coeso e com responsabilidade unica.
+- [x] Evitar fallback silencioso e comportamento implicito.
 
 ## Core nativo
 
-- [ ] Implementar deteccao do Codex instalado no Windows.
+- [x] Implementar deteccao do Codex instalado no Windows.
 - [ ] Implementar abertura do Codex com privilegios administrativos.
 - [ ] Implementar leitura e aplicacao de prioridade `Normal` ou `Alta`.
 - [ ] Garantir que a prioridade seja escolhida pelo usuario e nunca automatica.
@@ -40,6 +40,7 @@
 ## Validacao
 
 - [x] Compilar em Release.
+- [ ] Validar deteccao do Codex pela interface.
 - [ ] Validar abertura do Codex em runtime.
 - [ ] Validar aplicacao de prioridade `Normal`.
 - [ ] Validar aplicacao de prioridade `Alta`.
