@@ -21,6 +21,9 @@
 - [x] Remover controles extras de automacao e Registry.
 - [x] Mover `Abrir Codex` para o canto inferior direito.
 - [x] Mostrar processos Codex em prioridade alta e como administrador.
+- [x] Mover `Verificar Codex` para o lado esquerdo de `Abrir Codex`.
+- [x] Trocar lista de processos por console simples com copiar e limpar.
+- [x] Remover subtitulo duplicado abaixo de `Codex Tools`.
 
 ## Validacao
 

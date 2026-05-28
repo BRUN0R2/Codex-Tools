@@ -1,6 +1,7 @@
 import { getCodexStatus, openCodex } from "../Backend/CodexCommands";
 import {
   INITIAL_APP_STATE,
+  clearConsoleMessages,
   setCheckingCodexStatus,
   setCodexStatus,
   setFailedActionStatus,
@@ -23,6 +24,12 @@ export function mountApp(root: HTMLElement): void {
         onCodexRefresh(): void {
           void refreshCodexStatus();
         },
+        onConsoleClear(): void {
+          clearConsole();
+        },
+        onConsoleCopy(): void {
+          void copyConsole();
+        },
         onOpenCodex(): void {
           void launchCodex();
         },
@@ -39,6 +46,28 @@ export function mountApp(root: HTMLElement): void {
     state = result.ok
       ? setCodexStatus(state, result.value)
       : setFailedCodexStatus(state, result.error.message);
+    render();
+  }
+
+  function clearConsole(): void {
+    state = setSucceededActionStatus(clearConsoleMessages(state), "Console limpo.");
+    render();
+  }
+
+  async function copyConsole(): Promise<void> {
+    if (state.consoleMessages.length === 0) {
+      state = setSucceededActionStatus(state, "Console vazio.");
+      render();
+      return;
+    }
+
+    try {
+      await navigator.clipboard.writeText(state.consoleMessages.join("\n"));
+      state = setSucceededActionStatus(state, "Console copiado.");
+    } catch {
+      state = setFailedActionStatus(state, "Nao foi possivel copiar o console.");
+    }
+
     render();
   }
 

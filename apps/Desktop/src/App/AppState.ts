@@ -11,21 +11,28 @@ import {
   createFailedCodexStatus,
   type CodexStatus,
 } from "../Domain/CodexInstallation";
+import {
+  createCodexConsoleMessages,
+  type ConsoleMessage,
+} from "../Domain/CodexConsole";
 
 export type AppState = Readonly<{
   actionStatus: ActionStatus;
   codexStatus: CodexStatus;
+  consoleMessages: readonly ConsoleMessage[];
 }>;
 
 export const INITIAL_APP_STATE: AppState = {
   actionStatus: IDLE_ACTION_STATUS,
   codexStatus: UNCHECKED_CODEX_STATUS,
+  consoleMessages: createCodexConsoleMessages(UNCHECKED_CODEX_STATUS),
 };
 
 export function setCheckingCodexStatus(state: AppState): AppState {
   return {
     ...state,
     codexStatus: CHECKING_CODEX_STATUS,
+    consoleMessages: createCodexConsoleMessages(CHECKING_CODEX_STATUS),
   };
 }
 
@@ -33,6 +40,7 @@ export function setCodexStatus(state: AppState, codexStatus: CodexStatus): AppSt
   return {
     ...state,
     codexStatus,
+    consoleMessages: createCodexConsoleMessages(codexStatus),
   };
 }
 
@@ -58,5 +66,12 @@ export function setFailedActionStatus(state: AppState, message: string): AppStat
   return {
     ...state,
     actionStatus: createFailedActionStatus(message),
+  };
+}
+
+export function clearConsoleMessages(state: AppState): AppState {
+  return {
+    ...state,
+    consoleMessages: [],
   };
 }

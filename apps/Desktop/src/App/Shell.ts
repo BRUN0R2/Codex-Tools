@@ -1,10 +1,13 @@
 import type { AppState } from "./AppState";
 import { createCodexActionPanel } from "../Ui/CodexActionPanel";
+import { createCodexConsolePanel } from "../Ui/CodexConsolePanel";
 import { createCodexStatusPanel } from "../Ui/CodexStatusPanel";
 
 type ShellProps = Readonly<{
   state: AppState;
   onCodexRefresh: () => void;
+  onConsoleClear: () => void;
+  onConsoleCopy: () => void;
   onOpenCodex: () => void;
 }>;
 
@@ -24,6 +27,8 @@ function createTextElement<TagName extends TextElementTagName>(
 export function createShell({
   state,
   onCodexRefresh,
+  onConsoleClear,
+  onConsoleCopy,
   onOpenCodex,
 }: ShellProps): HTMLElementTagNameMap["section"] {
   const shell = document.createElement("section");
@@ -33,10 +38,7 @@ export function createShell({
   header.className = "AppHeader";
 
   const heading = document.createElement("div");
-  heading.append(
-    createTextElement("h1", "AppTitle", "Codex Tools"),
-    createTextElement("p", "AppStatus", "Prioridade Alta")
-  );
+  heading.append(createTextElement("h1", "AppTitle", "Codex Tools"));
 
   const panel = document.createElement("section");
   panel.className = "ControlSurface";
@@ -45,11 +47,16 @@ export function createShell({
     createTextElement("h2", "SectionTitle", "Controle"),
     createCodexStatusPanel({
       status: state.codexStatus,
-      onRefresh: onCodexRefresh,
+    }),
+    createCodexConsolePanel({
+      messages: state.consoleMessages,
+      onClear: onConsoleClear,
+      onCopy: onConsoleCopy,
     }),
     createCodexActionPanel({
       actionStatus: state.actionStatus,
       codexStatus: state.codexStatus,
+      onRefresh: onCodexRefresh,
       onOpenCodex,
     })
   );
