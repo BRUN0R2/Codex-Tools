@@ -35,6 +35,7 @@
 
 - [x] Criar instalacao em caminho estavel fora de `build`.
 - [x] Criar tarefa do Windows somente com configuracao escolhida pelo usuario.
+- [x] Ler configuracao atual salva na automacao.
 - [x] Criar atalho direto para abrir a interface.
 - [x] Adicionar remocao limpa da tarefa, atalho e binario instalado.
 

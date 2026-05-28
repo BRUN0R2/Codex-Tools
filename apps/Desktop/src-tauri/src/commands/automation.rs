@@ -35,6 +35,7 @@ pub struct AutomationStatusResponse {
     pub executable_path: String,
     pub shortcut_path: String,
     pub task_name: String,
+    pub saved_priority: Option<ProcessPriorityRequest>,
 }
 
 #[tauri::command]
@@ -182,6 +183,7 @@ impl From<AutomationStatus> for AutomationStatusResponse {
             executable_path: status.executable_path.to_string_lossy().into_owned(),
             shortcut_path: status.shortcut_path.to_string_lossy().into_owned(),
             task_name: status.task_name.to_string(),
+            saved_priority: status.saved_priority,
         }
     }
 }

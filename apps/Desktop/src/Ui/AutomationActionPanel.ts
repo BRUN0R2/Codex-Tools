@@ -1,6 +1,6 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
 import type { AutomationStatus } from "../Domain/Automation";
-import type { SelectedProcessPriority } from "../Domain/ProcessPriority";
+import { formatProcessPriority, type SelectedProcessPriority } from "../Domain/ProcessPriority";
 
 export type AutomationActionPanelProps = Readonly<{
   actionStatus: ActionStatus;
@@ -56,7 +56,10 @@ function createAutomationStatusText(automationStatus: AutomationStatus): HTMLPar
       text.textContent = "Automacao nao verificada";
       break;
     case "Installed":
-      text.textContent = automationStatus.taskName;
+      text.textContent =
+        automationStatus.savedPriority === null
+          ? automationStatus.taskName
+          : `${automationStatus.taskName} - ${formatProcessPriority(automationStatus.savedPriority)}`;
       break;
     case "NotInstalled":
       text.textContent = "Automacao nao instalada";

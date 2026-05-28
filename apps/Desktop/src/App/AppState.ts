@@ -79,12 +79,26 @@ export function setFailedActionStatus(state: AppState, message: string): AppStat
 }
 
 export function setAutomationStatus(state: AppState, automationStatus: AutomationStatus): AppState {
+  const savedPriority = savedPriorityFromAutomationStatus(automationStatus);
+
   return {
     ...state,
     automationStatus,
+    selectedPriority: state.selectedPriority ?? savedPriority,
   };
 }
 
 export function setFailedAutomationStatus(state: AppState, message: string): AppState {
   return setAutomationStatus(state, createFailedAutomationStatus(message));
+}
+
+function savedPriorityFromAutomationStatus(automationStatus: AutomationStatus): SelectedProcessPriority {
+  switch (automationStatus.state) {
+    case "Installed":
+    case "NotInstalled":
+      return automationStatus.savedPriority;
+    case "Unchecked":
+    case "Failed":
+      return null;
+  }
 }

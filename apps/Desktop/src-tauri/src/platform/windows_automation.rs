@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output};
 
 use crate::contracts::ProcessPriorityRequest;
 use crate::platform::windows_shortcut::{ShortcutRequest, create_shortcut};
@@ -21,6 +21,7 @@ pub struct AutomationStatus {
     pub executable_path: PathBuf,
     pub shortcut_path: PathBuf,
     pub task_name: &'static str,
+    pub saved_priority: Option<ProcessPriorityRequest>,
 }
 
 pub fn install_automation(priority: ProcessPriorityRequest) -> Result<AutomationStatus, String> {
@@ -80,14 +81,21 @@ pub fn remove_automation() -> Result<AutomationStatus, String> {
 
 pub fn automation_status() -> Result<AutomationStatus, String> {
     let paths = automation_paths()?;
+    let task_installed = task_exists()?;
+    let saved_priority = if task_installed {
+        Some(read_saved_task_priority()?)
+    } else {
+        None
+    };
     let installed =
-        paths.executable_path.is_file() && paths.shortcut_path.is_file() && task_exists()?;
+        paths.executable_path.is_file() && paths.shortcut_path.is_file() && task_installed;
 
     Ok(AutomationStatus {
         installed,
         executable_path: paths.executable_path,
         shortcut_path: paths.shortcut_path,
         task_name: AUTOMATION_TASK_NAME,
+        saved_priority,
     })
 }
 
@@ -130,18 +138,83 @@ fn run_command(program: &str, arguments: &[&str]) -> Result<(), String> {
         return Ok(());
     }
 
-    let stderr = String::from_utf8_lossy(&output.stderr).trim().to_string();
-    let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+    Err(command_error_message(program, &output))
+}
+
+fn read_saved_task_priority() -> Result<ProcessPriorityRequest, String> {
+    let output = Command::new("schtasks.exe")
+        .args(["/Query", "/TN", AUTOMATION_TASK_NAME, "/XML"])
+        .output()
+        .map_err(|error| error.to_string())?;
+
+    if !output.status.success() {
+        return Err(command_error_message("schtasks.exe", &output));
+    }
+
+    let task_definition = command_output_text(&output.stdout);
+
+    parse_priority_from_task_definition(&task_definition)
+        .ok_or_else(|| "Automation task is missing the saved priority.".to_string())
+}
+
+fn parse_priority_from_task_definition(task_definition: &str) -> Option<ProcessPriorityRequest> {
+    let priority_marker = format!("{PRIORITY_ARGUMENT} ");
+    let priority_start = task_definition.find(&priority_marker)? + priority_marker.len();
+    let priority_value = task_definition[priority_start..]
+        .split(is_priority_value_boundary)
+        .next()?;
+
+    ProcessPriorityRequest::parse(priority_value)
+}
+
+fn is_priority_value_boundary(character: char) -> bool {
+    character.is_whitespace() || character == '<' || character == '"' || character == '&'
+}
+
+fn command_error_message(program: &str, output: &Output) -> String {
+    let stderr = command_output_text(&output.stderr).trim().to_string();
+    let stdout = command_output_text(&output.stdout).trim().to_string();
 
     if !stderr.is_empty() {
-        return Err(stderr);
+        return stderr;
     }
 
     if !stdout.is_empty() {
-        return Err(stdout);
+        return stdout;
     }
 
-    Err(format!("{program} exited with status {}", output.status))
+    format!("{program} exited with status {}", output.status)
+}
+
+fn command_output_text(bytes: &[u8]) -> String {
+    if is_likely_utf16_little_endian(bytes) {
+        let utf16_units = bytes
+            .chunks_exact(2)
+            .map(|chunk| u16::from_le_bytes([chunk[0], chunk[1]]))
+            .collect::<Vec<u16>>();
+
+        return String::from_utf16_lossy(&utf16_units);
+    }
+
+    String::from_utf8_lossy(bytes).into_owned()
+}
+
+fn is_likely_utf16_little_endian(bytes: &[u8]) -> bool {
+    let sample_length = bytes.len().min(64);
+    let odd_sample_count = sample_length / 2;
+
+    if odd_sample_count == 0 {
+        return false;
+    }
+
+    let zero_odd_byte_count = bytes
+        .iter()
+        .take(sample_length)
+        .enumerate()
+        .filter(|(index, byte)| index % 2 == 1 && **byte == 0)
+        .count();
+
+    zero_odd_byte_count * 2 >= odd_sample_count
 }
 
 fn task_exists() -> Result<bool, String> {

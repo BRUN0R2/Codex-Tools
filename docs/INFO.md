@@ -27,6 +27,7 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
 - Abrir Codex com elevacao via API nativa do Windows e aplicar apenas prioridade `Normal` ou `Alta`.
 - Instalar automacao em `%LOCALAPPDATA%\CodexTools` com tarefa de logon em privilegio alto e atalho no menu iniciar.
+- Ler a prioridade salva na tarefa instalada para refletir a configuracao atual na interface.
 
 ## Validacao atual
 
