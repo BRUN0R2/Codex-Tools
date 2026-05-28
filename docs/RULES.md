@@ -20,14 +20,24 @@ Velocidade nunca justifica degradação arquitetural.
 
 ---
 
-## Regra Estrutural Prioritária
+## Regras Modulares Prioritárias
 
-A organização modular de pastas e arquivos é uma regra de alta prioridade.
+A modularidade existe em dois níveis obrigatórios e ambos possuem prioridade muito alta.
 
+### Pastas e arquivos
+
+* A organização modular de pastas e arquivos é obrigatória.
 * Nenhum código novo deve ser criado em pastas genéricas ou acumuladas sem responsabilidade clara.
 * A estrutura de diretórios deve refletir módulos reais, pequenos, coesos e previsíveis.
 * Cada pasta deve possuir propósito explícito e conter apenas arquivos diretamente relacionados.
 * Quando a estrutura estiver ambígua, a modularização deve vir antes de novas funcionalidades.
+
+### Código
+
+* O código interno de cada módulo também deve ser modular, coeso e explícito.
+* Cada classe, função, estado e contrato deve possuir responsabilidade única e clara.
+* Nenhuma implementação deve concentrar múltiplas responsabilidades por conveniência.
+* Quando uma função, classe ou arquivo começar a acumular regras diferentes, a separação modular deve vir antes de novas funcionalidades.
 
 ---
 
