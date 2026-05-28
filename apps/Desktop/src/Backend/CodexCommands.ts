@@ -9,7 +9,6 @@ import {
   type CodexStatus,
   type CodexStatusResponse,
 } from "../Domain/CodexInstallation";
-import type { ProcessPriority } from "../Domain/ProcessPriority";
 
 const GET_CODEX_STATUS_COMMAND_NAME = "get_codex_status";
 const OPEN_CODEX_COMMAND_NAME = "open_codex";
@@ -37,12 +36,8 @@ export async function getCodexStatus(): Promise<CommandResult<CodexStatus>> {
   }
 }
 
-export async function openCodex(priority: ProcessPriority): Promise<CommandResult<CodexLaunchResponse>> {
-  const result = await invokeCommand<CodexLaunchResponse>(OPEN_CODEX_COMMAND_NAME, {
-    request: {
-      priority,
-    },
-  });
+export async function openCodex(): Promise<CommandResult<CodexLaunchResponse>> {
+  const result = await invokeCommand<CodexLaunchResponse>(OPEN_CODEX_COMMAND_NAME);
 
   if (!result.ok) {
     return result;

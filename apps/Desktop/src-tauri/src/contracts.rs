@@ -1,4 +1,4 @@
-use serde::{Deserialize, Serialize};
+use serde::Serialize;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -19,32 +19,7 @@ impl CommandError {
 #[derive(Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandErrorCode {
-    AutomationFailed,
     CodexNotFound,
     InvalidState,
-    PersistentPriorityFailed,
     WindowsApiFailed,
-}
-
-#[derive(Deserialize, Serialize, Clone, Copy)]
-pub enum ProcessPriorityRequest {
-    Normal,
-    High,
-}
-
-impl ProcessPriorityRequest {
-    pub fn cli_value(self) -> &'static str {
-        match self {
-            Self::Normal => "Normal",
-            Self::High => "High",
-        }
-    }
-
-    pub fn parse(value: &str) -> Option<Self> {
-        match value {
-            "Normal" => Some(Self::Normal),
-            "High" => Some(Self::High),
-            _ => None,
-        }
-    }
 }

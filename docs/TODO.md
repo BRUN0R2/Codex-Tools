@@ -2,52 +2,29 @@
 
 ## Base
 
-- [x] Confirmar stack atualizada antes de implementar.
+- [x] Manter regras do projeto em `docs/RULES.md`.
 - [x] Criar estrutura modular do projeto.
-- [x] Configurar build moderno e enxuto.
-- [x] Registrar decisoes tecnicas essenciais em `docs/INFO.md`.
+- [x] Configurar app desktop Tauri.
+- [x] Registrar decisoes tecnicas em `docs/INFO.md`.
 
-## Arquitetura
+## Core
 
-- [x] Separar frontend Tauri, backend nativo e modulos de plataforma.
-- [x] Definir contratos explicitos para comandos, estados e erros.
-- [x] Manter cada modulo pequeno, coeso e com responsabilidade unica.
-- [x] Evitar fallback silencioso e comportamento implicito.
+- [x] Detectar instalacao do Codex no Windows.
+- [x] Abrir Codex com elevacao de administrador.
+- [x] Aplicar prioridade alta nos processos Codex.
+- [x] Exigir elevacao do Codex Tools antes da janela abrir.
+- [x] Listar processos Codex com prioridade atual e estado de administrador.
 
-## Core nativo
+## Interface
 
-- [x] Implementar deteccao do Codex instalado no Windows.
-- [x] Implementar abertura do Codex com privilegios administrativos.
-- [x] Implementar leitura e aplicacao de prioridade `Normal` ou `Alta`.
-- [x] Garantir que a prioridade seja escolhida pelo usuario e nunca automatica.
-- [x] Bloquear prioridade em tempo real.
-- [x] Persistir prioridade alta para todos os executaveis Codex via Registry.
-
-## Interface Tauri
-
-- [x] Criar app Tauri usando a versao mais atualizada no momento da implementacao.
-- [x] Criar tela principal direta para controlar o Codex.
-- [x] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
-- [x] Adicionar acao real para abrir Codex.
-- [x] Adicionar acoes reais para instalar e remover automacao.
-- [x] Evitar textos, controles e estados sem uso real.
-
-## Automacao
-
-- [x] Criar instalacao em caminho estavel fora de `build`.
-- [x] Criar tarefa do Windows somente com configuracao escolhida pelo usuario.
-- [x] Ler configuracao atual salva na automacao.
-- [x] Criar atalho direto para abrir a interface.
-- [x] Adicionar remocao limpa da tarefa, atalho e binario instalado.
+- [x] Simplificar tela para foco unico em abrir Codex.
+- [x] Remover controles extras de automacao e Registry.
+- [x] Mover `Abrir Codex` para o canto inferior direito.
+- [x] Mostrar processos Codex em prioridade alta e como administrador.
 
 ## Validacao
 
-- [x] Compilar em Release.
-- [ ] Validar deteccao do Codex pela interface.
+- [x] Compilar frontend.
+- [x] Validar backend Rust.
 - [ ] Validar abertura do Codex em runtime.
-- [ ] Validar aplicacao de prioridade `Normal`.
-- [ ] Validar aplicacao de prioridade `Alta`.
-- [ ] Validar instalacao e remocao da prioridade alta persistente via Registry.
-- [ ] Validar nova abertura do Codex ja em prioridade alta.
-- [ ] Validar instalacao e remocao limpa.
-- [ ] Validar tarefa apos reiniciar ou fazer logon.
+- [ ] Validar lista de processos apos o Codex carregar totalmente.

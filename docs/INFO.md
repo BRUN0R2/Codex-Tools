@@ -22,16 +22,17 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Manter o app desktop em `apps/Desktop`.
 - Manter frontend, backend Tauri e futuro core nativo isolados por responsabilidade.
 - Usar convencoes de modulo do Rust no backend Tauri quando exigidas pelo toolchain.
-- Prioridade de processo deve ser escolha explicita do usuario: `Normal` ou `Alta`.
-- Prioridade em tempo real permanece bloqueada.
+- O fluxo principal usa prioridade alta fixa para todos os processos Codex.
+- Prioridade em tempo real permanece fora do produto.
 - Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
-- Abrir Codex com elevacao via API nativa do Windows e aplicar apenas prioridade `Normal` ou `Alta`.
-- Instalar automacao em `%LOCALAPPDATA%\CodexTools` com tarefa de logon em privilegio alto e atalho no menu iniciar.
-- Ler a prioridade salva na tarefa instalada para refletir a configuracao atual na interface.
-- Persistir prioridade alta para `Codex.exe` e `codex.exe` via IFEO `PerfOptions` no Registry.
+- Codex Tools deve pedir elevacao de administrador antes da janela abrir.
+- Abrir Codex com elevacao via API nativa do Windows.
+- Reaplicar prioridade alta por alguns ciclos curtos para cobrir os processos que surgem apos o carregamento inicial.
+- Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
+- Manter automacao e Registry fora da interface simplificada.
 
 ## Validacao atual
 
 - `npm run build`.
 - `cargo check --manifest-path apps/Desktop/src-tauri/Cargo.toml`.
-- `npm run tauri build`.
+- `cargo clippy --manifest-path apps/Desktop/src-tauri/Cargo.toml -- -D warnings`.

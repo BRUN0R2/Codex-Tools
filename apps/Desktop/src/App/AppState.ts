@@ -6,45 +6,21 @@ import {
   type ActionStatus,
 } from "../Domain/ActionStatus";
 import {
-  UNCHECKED_AUTOMATION_STATUS,
-  createFailedAutomationStatus,
-  type AutomationStatus,
-} from "../Domain/Automation";
-import {
   CHECKING_CODEX_STATUS,
   UNCHECKED_CODEX_STATUS,
   createFailedCodexStatus,
   type CodexStatus,
 } from "../Domain/CodexInstallation";
-import {
-  UNCHECKED_PERSISTENT_PRIORITY_STATUS,
-  createFailedPersistentPriorityStatus,
-  type PersistentPriorityStatus,
-} from "../Domain/PersistentPriority";
-import type { ProcessPriority, SelectedProcessPriority } from "../Domain/ProcessPriority";
 
 export type AppState = Readonly<{
   actionStatus: ActionStatus;
-  automationStatus: AutomationStatus;
   codexStatus: CodexStatus;
-  persistentPriorityStatus: PersistentPriorityStatus;
-  selectedPriority: SelectedProcessPriority;
 }>;
 
 export const INITIAL_APP_STATE: AppState = {
   actionStatus: IDLE_ACTION_STATUS,
-  automationStatus: UNCHECKED_AUTOMATION_STATUS,
   codexStatus: UNCHECKED_CODEX_STATUS,
-  persistentPriorityStatus: UNCHECKED_PERSISTENT_PRIORITY_STATUS,
-  selectedPriority: null,
 };
-
-export function selectProcessPriority(state: AppState, priority: ProcessPriority): AppState {
-  return {
-    ...state,
-    selectedPriority: priority,
-  };
-}
 
 export function setCheckingCodexStatus(state: AppState): AppState {
   return {
@@ -83,43 +59,4 @@ export function setFailedActionStatus(state: AppState, message: string): AppStat
     ...state,
     actionStatus: createFailedActionStatus(message),
   };
-}
-
-export function setAutomationStatus(state: AppState, automationStatus: AutomationStatus): AppState {
-  const savedPriority = savedPriorityFromAutomationStatus(automationStatus);
-
-  return {
-    ...state,
-    automationStatus,
-    selectedPriority: state.selectedPriority ?? savedPriority,
-  };
-}
-
-export function setFailedAutomationStatus(state: AppState, message: string): AppState {
-  return setAutomationStatus(state, createFailedAutomationStatus(message));
-}
-
-export function setPersistentPriorityStatus(
-  state: AppState,
-  persistentPriorityStatus: PersistentPriorityStatus
-): AppState {
-  return {
-    ...state,
-    persistentPriorityStatus,
-  };
-}
-
-export function setFailedPersistentPriorityStatus(state: AppState, message: string): AppState {
-  return setPersistentPriorityStatus(state, createFailedPersistentPriorityStatus(message));
-}
-
-function savedPriorityFromAutomationStatus(automationStatus: AutomationStatus): SelectedProcessPriority {
-  switch (automationStatus.state) {
-    case "Installed":
-    case "NotInstalled":
-      return automationStatus.savedPriority;
-    case "Unchecked":
-    case "Failed":
-      return null;
-  }
 }

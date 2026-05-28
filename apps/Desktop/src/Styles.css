@@ -49,13 +49,14 @@ button {
 }
 
 .ControlSurface {
-  align-content: start;
   background: #ffffff;
   border: 1px solid #d8dee7;
   border-radius: 8px;
   box-sizing: border-box;
   display: grid;
   gap: 24px;
+  grid-template-rows: auto auto minmax(0, 1fr);
+  min-height: 496px;
   padding: 24px;
 }
 
@@ -66,29 +67,19 @@ button {
 }
 
 .CodexStatusPanel {
-  align-items: center;
   border: 1px solid #d8dee7;
   border-radius: 8px;
   box-sizing: border-box;
   display: grid;
-  gap: 12px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
   padding: 14px;
 }
 
-.CodexActionPanel {
+.CodexDetectionRow {
   align-items: center;
   display: grid;
   gap: 12px;
-  grid-template-columns: auto minmax(0, 1fr);
-}
-
-.AutomationActionPanel,
-.PersistentPriorityActionPanel {
-  align-items: center;
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto auto minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .CodexStatusText {
@@ -96,6 +87,53 @@ button {
   font-size: 13px;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.CodexProcessReport {
+  display: grid;
+  gap: 16px;
+}
+
+.CodexProcessGroup {
+  display: grid;
+  gap: 8px;
+}
+
+.CodexProcessGroupTitle {
+  color: #171a1f;
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.CodexProcessEmptyText,
+.CodexProcessItem {
+  color: #53606f;
+  font-size: 13px;
+}
+
+.CodexProcessEmptyText {
+  margin: 0;
+}
+
+.CodexProcessList {
+  display: grid;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.CodexProcessItem {
+  overflow-wrap: anywhere;
+}
+
+.CodexActionPanel {
+  align-self: end;
+  align-items: end;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 .ActionStatusText {
@@ -125,105 +163,22 @@ button {
   cursor: wait;
 }
 
-.SecondaryButton {
-  background: #ffffff;
-  border: 1px solid #b9c3cf;
-  border-radius: 8px;
-  color: #171a1f;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  min-height: 38px;
-  min-width: 128px;
-  padding: 0 14px;
-}
-
-.SecondaryButton:disabled {
-  background: #eef2f6;
-  border-color: #d8dee7;
-  color: #7a8491;
-  cursor: not-allowed;
-}
-
-.PrioritySelector {
-  border: 0;
-  display: grid;
-  gap: 10px;
-  margin: 0;
-  min-inline-size: 0;
-  padding: 0;
-}
-
-.FieldLabel {
-  color: #353d49;
-  font-size: 13px;
-  font-weight: 700;
-  padding: 0;
-}
-
-.SegmentedControl {
-  background: #eef2f6;
-  border: 1px solid #d8dee7;
-  border-radius: 8px;
-  box-sizing: border-box;
-  display: grid;
-  gap: 4px;
-  grid-template-columns: repeat(2, minmax(120px, 1fr));
-  max-width: 360px;
-  padding: 4px;
-}
-
-.SegmentedInput {
-  opacity: 0;
-  pointer-events: none;
-  position: absolute;
-}
-
-.SegmentedOption {
-  border-radius: 6px;
-  box-sizing: border-box;
-  color: #353d49;
-  cursor: pointer;
-  font-size: 14px;
-  font-weight: 700;
-  line-height: 1;
-  min-height: 40px;
-  padding: 13px 14px;
-  text-align: center;
-  user-select: none;
-}
-
-.SegmentedInput:checked + .SegmentedOption {
-  background: #1f6feb;
-  color: #ffffff;
-}
-
-.SegmentedInput:focus-visible + .SegmentedOption {
-  outline: 2px solid #2da44e;
-  outline-offset: 2px;
-}
-
 @media (max-width: 760px) {
   .AppHeader {
     align-items: start;
     flex-direction: column;
   }
 
-  .SegmentedControl {
-    grid-template-columns: 1fr;
-    max-width: none;
+  .ControlSurface {
+    min-height: 560px;
   }
 
-  .CodexStatusPanel {
-    grid-template-columns: 1fr;
-  }
-
+  .CodexDetectionRow,
   .CodexActionPanel {
     grid-template-columns: 1fr;
   }
 
-  .AutomationActionPanel,
-  .PersistentPriorityActionPanel {
-    grid-template-columns: 1fr;
+  .CodexActionPanel .PrimaryButton {
+    justify-self: stretch;
   }
 }

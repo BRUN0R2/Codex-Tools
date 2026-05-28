@@ -1,18 +1,15 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
 import type { CodexStatus } from "../Domain/CodexInstallation";
-import type { SelectedProcessPriority } from "../Domain/ProcessPriority";
 
 export type CodexActionPanelProps = Readonly<{
   actionStatus: ActionStatus;
   codexStatus: CodexStatus;
-  selectedPriority: SelectedProcessPriority;
   onOpenCodex: () => void;
 }>;
 
 export function createCodexActionPanel({
   actionStatus,
   codexStatus,
-  selectedPriority,
   onOpenCodex,
 }: CodexActionPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
@@ -21,21 +18,17 @@ export function createCodexActionPanel({
   const openCodexButton = document.createElement("button");
   openCodexButton.className = "PrimaryButton";
   openCodexButton.type = "button";
-  openCodexButton.disabled = !canOpenCodex(codexStatus, selectedPriority, actionStatus);
+  openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus);
   openCodexButton.textContent = actionStatus.state === "Running" ? actionStatus.label : "Abrir Codex";
   openCodexButton.addEventListener("click", onOpenCodex);
 
-  panel.append(openCodexButton, createActionStatusText(actionStatus));
+  panel.append(createActionStatusText(actionStatus), openCodexButton);
 
   return panel;
 }
 
-function canOpenCodex(
-  codexStatus: CodexStatus,
-  selectedPriority: SelectedProcessPriority,
-  actionStatus: ActionStatus
-): boolean {
-  return codexStatus.state === "Found" && selectedPriority !== null && actionStatus.state !== "Running";
+function canOpenCodex(codexStatus: CodexStatus, actionStatus: ActionStatus): boolean {
+  return codexStatus.state === "Found" && actionStatus.state !== "Running";
 }
 
 function createActionStatusText(actionStatus: ActionStatus): HTMLParagraphElement {
@@ -44,7 +37,7 @@ function createActionStatusText(actionStatus: ActionStatus): HTMLParagraphElemen
 
   switch (actionStatus.state) {
     case "Idle":
-      text.textContent = "Selecione a prioridade e verifique o Codex";
+      text.textContent = "Pronto para abrir Codex em prioridade alta.";
       break;
     case "Running":
       text.textContent = actionStatus.label;
