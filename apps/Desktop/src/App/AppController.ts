@@ -89,6 +89,7 @@ export function mountApp(root: HTMLElement): void {
 
     state = setFailedActionStatus(state, result.error.message);
     render();
+    await refreshCodexStatus();
   }
 
   render();

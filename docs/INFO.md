@@ -29,6 +29,7 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Abrir Codex com elevacao via API nativa do Windows.
 - Reaplicar prioridade alta por alguns ciclos curtos para cobrir os processos que surgem apos o carregamento inicial.
 - Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
+- Elevação `normal` no console indica processo existente ou processo que nao foi reaberto com token administrativo.
 - Manter automacao e Registry fora da interface simplificada.
 
 ## Validacao atual

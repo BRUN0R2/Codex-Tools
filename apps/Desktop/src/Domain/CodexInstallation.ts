@@ -1,4 +1,11 @@
-export type CodexProcessPriority = "Normal" | "High" | "Other" | "Unknown";
+export type CodexProcessPriority =
+  | "Idle"
+  | "BelowNormal"
+  | "Normal"
+  | "AboveNormal"
+  | "High"
+  | "Realtime"
+  | "Unknown";
 
 export type CodexProcessElevation = "Elevated" | "NotElevated" | "Unavailable";
 
@@ -119,7 +126,15 @@ function parseCodexProcess(process: CodexProcessResponse): CodexProcess {
 }
 
 function isCodexProcessPriority(value: string): value is CodexProcessPriority {
-  return value === "Normal" || value === "High" || value === "Other" || value === "Unknown";
+  return (
+    value === "Idle" ||
+    value === "BelowNormal" ||
+    value === "Normal" ||
+    value === "AboveNormal" ||
+    value === "High" ||
+    value === "Realtime" ||
+    value === "Unknown"
+  );
 }
 
 function isCodexProcessElevation(value: string): value is CodexProcessElevation {

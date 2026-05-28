@@ -12,6 +12,7 @@
 - [x] Detectar instalacao do Codex no Windows.
 - [x] Abrir Codex com elevacao de administrador.
 - [x] Aplicar prioridade alta nos processos Codex.
+- [x] Estabilizar prioridade alta durante o carregamento completo do Codex.
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.
 

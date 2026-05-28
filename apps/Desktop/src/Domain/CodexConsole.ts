@@ -49,12 +49,18 @@ function formatElevation(elevation: CodexProcessElevation): string {
 
 function formatPriority(priority: CodexProcessPriority): string {
   switch (priority) {
+    case "Idle":
+      return "baixa";
+    case "BelowNormal":
+      return "abaixo do normal";
     case "Normal":
       return "normal";
+    case "AboveNormal":
+      return "acima do normal";
     case "High":
       return "alta";
-    case "Other":
-      return "outra";
+    case "Realtime":
+      return "tempo real";
     case "Unknown":
       return "indisponivel";
   }

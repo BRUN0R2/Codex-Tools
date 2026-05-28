@@ -12,8 +12,10 @@ use crate::platform::windows_process::{
     inspect_running_codex_processes, launch_as_administrator,
 };
 
-const PRIORITY_APPLICATION_ATTEMPTS: usize = 10;
+const PRIORITY_APPLICATION_MAX_ATTEMPTS: usize = 40;
+const PRIORITY_APPLICATION_MIN_ATTEMPTS: usize = 24;
 const PRIORITY_APPLICATION_RETRY_DELAY: Duration = Duration::from_millis(500);
+const REQUIRED_STABLE_HIGH_PRIORITY_ATTEMPTS: usize = 3;
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -35,9 +37,12 @@ pub struct CodexProcessResponse {
 
 #[derive(Serialize)]
 pub enum CodexProcessPriorityResponse {
+    Idle,
+    BelowNormal,
     Normal,
+    AboveNormal,
     High,
-    Other,
+    Realtime,
     Unknown,
 }
 
@@ -131,8 +136,9 @@ fn launch_codex_with_high_priority() -> Result<CodexLaunchResponse, CommandError
 
 fn apply_high_priority_with_retry() -> Result<PriorityApplication, CommandError> {
     let mut updated_process_ids = BTreeSet::new();
+    let mut stable_high_priority_attempts = 0usize;
 
-    for attempt_index in 0..PRIORITY_APPLICATION_ATTEMPTS {
+    for attempt_index in 0..PRIORITY_APPLICATION_MAX_ATTEMPTS {
         let priority_application = apply_high_priority_to_running_codex().map_err(|error| {
             CommandError::new(
                 CommandErrorCode::WindowsApiFailed,
@@ -142,7 +148,28 @@ fn apply_high_priority_with_retry() -> Result<PriorityApplication, CommandError>
 
         updated_process_ids.extend(priority_application.updated_process_ids);
 
-        if attempt_index + 1 < PRIORITY_APPLICATION_ATTEMPTS {
+        let processes = inspect_running_codex_processes().map_err(|error| {
+            CommandError::new(
+                CommandErrorCode::WindowsApiFailed,
+                format!("Failed to inspect Codex priority after update: {error}"),
+            )
+        })?;
+
+        if codex_processes_are_high_priority(&processes) {
+            stable_high_priority_attempts += 1;
+        } else {
+            stable_high_priority_attempts = 0;
+        }
+
+        let minimum_attempts_completed = attempt_index + 1 >= PRIORITY_APPLICATION_MIN_ATTEMPTS;
+        let priority_is_stable =
+            stable_high_priority_attempts >= REQUIRED_STABLE_HIGH_PRIORITY_ATTEMPTS;
+
+        if minimum_attempts_completed && priority_is_stable {
+            break;
+        }
+
+        if attempt_index + 1 < PRIORITY_APPLICATION_MAX_ATTEMPTS {
             thread::sleep(PRIORITY_APPLICATION_RETRY_DELAY);
         }
     }
@@ -150,6 +177,13 @@ fn apply_high_priority_with_retry() -> Result<PriorityApplication, CommandError>
     Ok(PriorityApplication {
         updated_process_ids: updated_process_ids.into_iter().collect(),
     })
+}
+
+fn codex_processes_are_high_priority(processes: &[CodexProcessInspection]) -> bool {
+    !processes.is_empty()
+        && processes
+            .iter()
+            .all(|process| matches!(process.priority, WindowsProcessPriorityState::High))
 }
 
 impl From<CodexProcessInspection> for CodexProcessResponse {
@@ -166,9 +200,12 @@ impl From<CodexProcessInspection> for CodexProcessResponse {
 impl From<WindowsProcessPriorityState> for CodexProcessPriorityResponse {
     fn from(priority: WindowsProcessPriorityState) -> Self {
         match priority {
+            WindowsProcessPriorityState::Idle => Self::Idle,
+            WindowsProcessPriorityState::BelowNormal => Self::BelowNormal,
             WindowsProcessPriorityState::Normal => Self::Normal,
+            WindowsProcessPriorityState::AboveNormal => Self::AboveNormal,
             WindowsProcessPriorityState::High => Self::High,
-            WindowsProcessPriorityState::Other => Self::Other,
+            WindowsProcessPriorityState::Realtime => Self::Realtime,
             WindowsProcessPriorityState::Unknown => Self::Unknown,
         }
     }

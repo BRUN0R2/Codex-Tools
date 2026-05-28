@@ -11,9 +11,10 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::Threading::{
-    GetCurrentProcess, GetPriorityClass, HIGH_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS, OpenProcess,
-    OpenProcessToken, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION, SetPriorityClass,
-    WaitForInputIdle,
+    ABOVE_NORMAL_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, GetCurrentProcess, GetPriorityClass,
+    HIGH_PRIORITY_CLASS, IDLE_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS, OpenProcess, OpenProcessToken,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION, REALTIME_PRIORITY_CLASS,
+    SetPriorityClass, WaitForInputIdle,
 };
 use windows::Win32::UI::Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW};
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
@@ -28,9 +29,12 @@ const WAIT_FOR_INPUT_IDLE_TIMEOUT_MILLISECONDS: u32 = 1_500;
 
 #[derive(Clone, Copy)]
 pub enum WindowsProcessPriorityState {
+    Idle,
+    BelowNormal,
     Normal,
+    AboveNormal,
     High,
-    Other,
+    Realtime,
     Unknown,
 }
 
@@ -186,9 +190,13 @@ fn process_priority_from_handle(process_handle: HANDLE) -> WindowsProcessPriorit
 
     match priority_class {
         0 => WindowsProcessPriorityState::Unknown,
+        value if value == IDLE_PRIORITY_CLASS.0 => WindowsProcessPriorityState::Idle,
+        value if value == BELOW_NORMAL_PRIORITY_CLASS.0 => WindowsProcessPriorityState::BelowNormal,
         value if value == NORMAL_PRIORITY_CLASS.0 => WindowsProcessPriorityState::Normal,
+        value if value == ABOVE_NORMAL_PRIORITY_CLASS.0 => WindowsProcessPriorityState::AboveNormal,
         value if value == HIGH_PRIORITY_CLASS.0 => WindowsProcessPriorityState::High,
-        _ => WindowsProcessPriorityState::Other,
+        value if value == REALTIME_PRIORITY_CLASS.0 => WindowsProcessPriorityState::Realtime,
+        _ => WindowsProcessPriorityState::Unknown,
     }
 }
 
