@@ -17,17 +17,18 @@
 ## Core nativo
 
 - [x] Implementar deteccao do Codex instalado no Windows.
-- [ ] Implementar abertura do Codex com privilegios administrativos.
-- [ ] Implementar leitura e aplicacao de prioridade `Normal` ou `Alta`.
-- [ ] Garantir que a prioridade seja escolhida pelo usuario e nunca automatica.
-- [ ] Bloquear prioridade em tempo real.
+- [x] Implementar abertura do Codex com privilegios administrativos.
+- [x] Implementar leitura e aplicacao de prioridade `Normal` ou `Alta`.
+- [x] Garantir que a prioridade seja escolhida pelo usuario e nunca automatica.
+- [x] Bloquear prioridade em tempo real.
 
 ## Interface Tauri
 
 - [x] Criar app Tauri usando a versao mais atualizada no momento da implementacao.
 - [x] Criar tela principal direta para controlar o Codex.
 - [x] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
-- [ ] Adicionar acoes para abrir Codex, instalar automacao e remover automacao.
+- [x] Adicionar acao real para abrir Codex.
+- [ ] Adicionar acoes reais para instalar e remover automacao.
 - [x] Evitar textos, controles e estados sem uso real.
 
 ## Automacao

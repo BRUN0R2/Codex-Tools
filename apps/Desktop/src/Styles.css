@@ -76,8 +76,22 @@ button {
   padding: 14px;
 }
 
+.CodexActionPanel {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto minmax(0, 1fr);
+}
+
 .CodexStatusText {
   color: #353d49;
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.ActionStatusText {
+  color: #53606f;
   font-size: 13px;
   margin: 0;
   overflow-wrap: anywhere;
@@ -92,6 +106,7 @@ button {
   font-size: 13px;
   font-weight: 700;
   min-height: 38px;
+  min-width: 128px;
   padding: 0 14px;
 }
 
@@ -172,6 +187,10 @@ button {
   }
 
   .CodexStatusPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .CodexActionPanel {
     grid-template-columns: 1fr;
   }
 }

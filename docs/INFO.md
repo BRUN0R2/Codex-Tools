@@ -25,6 +25,7 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Prioridade de processo deve ser escolha explicita do usuario: `Normal` ou `Alta`.
 - Prioridade em tempo real permanece bloqueada.
 - Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
+- Abrir Codex com elevacao via API nativa do Windows e aplicar apenas prioridade `Normal` ou `Alta`.
 
 ## Validacao atual
 

@@ -6,13 +6,21 @@ type BackendCommandFailure = Readonly<{
   message?: unknown;
 }>;
 
+type CommandArguments = Readonly<Record<string, unknown>>;
+
 const UNEXPECTED_ERROR_CODE = "UnexpectedError";
 
-export async function invokeCommand<Response>(commandName: string): Promise<CommandResult<Response>> {
+export async function invokeCommand<Response>(
+  commandName: string,
+  commandArguments?: CommandArguments
+): Promise<CommandResult<Response>> {
   try {
     return {
       ok: true,
-      value: await invoke<Response>(commandName),
+      value:
+        commandArguments === undefined
+          ? await invoke<Response>(commandName)
+          : await invoke<Response>(commandName, commandArguments),
     };
   } catch (error: unknown) {
     return {

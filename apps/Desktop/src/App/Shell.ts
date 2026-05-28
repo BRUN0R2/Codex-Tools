@@ -1,11 +1,13 @@
 import type { AppState } from "./AppState";
 import { formatProcessPriority, type ProcessPriority } from "../Domain/ProcessPriority";
+import { createCodexActionPanel } from "../Ui/CodexActionPanel";
 import { createCodexStatusPanel } from "../Ui/CodexStatusPanel";
 import { createPrioritySelector } from "../Ui/PrioritySelector";
 
 type ShellProps = Readonly<{
   state: AppState;
   onCodexRefresh: () => void;
+  onOpenCodex: () => void;
   onPriorityChange: (priority: ProcessPriority) => void;
 }>;
 
@@ -33,6 +35,7 @@ function createStatusText(state: AppState): string {
 export function createShell({
   state,
   onCodexRefresh,
+  onOpenCodex,
   onPriorityChange,
 }: ShellProps): HTMLElementTagNameMap["section"] {
   const shell = document.createElement("section");
@@ -59,6 +62,12 @@ export function createShell({
     createPrioritySelector({
       selectedPriority: state.selectedPriority,
       onChange: onPriorityChange,
+    }),
+    createCodexActionPanel({
+      actionStatus: state.actionStatus,
+      codexStatus: state.codexStatus,
+      selectedPriority: state.selectedPriority,
+      onOpenCodex,
     })
   );
 

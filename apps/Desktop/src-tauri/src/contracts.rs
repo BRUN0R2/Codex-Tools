@@ -19,5 +19,7 @@ impl CommandError {
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandErrorCode {
+    CodexNotFound,
     InvalidState,
+    WindowsApiFailed,
 }
