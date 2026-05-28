@@ -58,7 +58,7 @@ pub enum CodexProcessElevationResponse {
 pub struct CodexLaunchResponse {
     pub executable_path: String,
     pub priority: CodexLaunchPriorityResponse,
-    pub updated_process_count: usize,
+    pub priority_stabilization_started: bool,
 }
 
 #[derive(Serialize)]
@@ -118,20 +118,19 @@ fn launch_codex_with_high_priority() -> Result<CodexLaunchResponse, CommandError
         )
     })?;
 
-    let priority_application = apply_high_priority_with_retry()?;
-
-    if priority_application.updated_process_ids.is_empty() {
-        return Err(CommandError::new(
-            CommandErrorCode::InvalidState,
-            "Codex was launched, but no Codex process was available for priority update.",
-        ));
-    }
+    spawn_high_priority_stabilization();
 
     Ok(CodexLaunchResponse {
         executable_path: executable_path.to_string_lossy().into_owned(),
         priority: CodexLaunchPriorityResponse::High,
-        updated_process_count: priority_application.updated_process_ids.len(),
+        priority_stabilization_started: true,
     })
+}
+
+fn spawn_high_priority_stabilization() {
+    thread::spawn(|| {
+        let _ = apply_high_priority_with_retry();
+    });
 }
 
 fn apply_high_priority_with_retry() -> Result<PriorityApplication, CommandError> {

@@ -3,7 +3,7 @@ export type CodexLaunchPriority = "High";
 export type CodexLaunchResponse = Readonly<{
   executablePath: string;
   priority: CodexLaunchPriority;
-  updatedProcessCount: number;
+  priorityStabilizationStarted: boolean;
 }>;
 
 export function parseCodexLaunchResponse(response: CodexLaunchResponse): CodexLaunchResponse {
@@ -15,8 +15,8 @@ export function parseCodexLaunchResponse(response: CodexLaunchResponse): CodexLa
     throw new Error("Codex launch response has an invalid priority.");
   }
 
-  if (!Number.isInteger(response.updatedProcessCount) || response.updatedProcessCount < 0) {
-    throw new Error("Codex launch response has an invalid process count.");
+  if (response.priorityStabilizationStarted !== true) {
+    throw new Error("Codex launch response did not start priority stabilization.");
   }
 
   return response;

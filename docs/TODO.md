@@ -13,6 +13,7 @@
 - [x] Abrir Codex com elevacao de administrador.
 - [x] Aplicar prioridade alta nos processos Codex.
 - [x] Estabilizar prioridade alta durante o carregamento completo do Codex.
+- [x] Executar estabilizacao de prioridade sem bloquear a interface.
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.
 
@@ -25,6 +26,7 @@
 - [x] Mover `Verificar Codex` para o lado esquerdo de `Abrir Codex`.
 - [x] Trocar lista de processos por console simples com copiar e limpar.
 - [x] Remover subtitulo duplicado abaixo de `Codex Tools`.
+- [x] Mostrar `Estatus` com estados `esperando`, `abrindo codex` e `pronto`.
 
 ## Validacao
 

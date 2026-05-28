@@ -133,11 +133,23 @@ button {
   grid-template-columns: auto auto;
 }
 
-.ActionStatusText {
-  color: #53606f;
+.RuntimeStatus {
   font-size: 13px;
+  font-weight: 700;
   margin: 0;
   overflow-wrap: anywhere;
+}
+
+.RuntimeStatus--Waiting {
+  color: #18345a;
+}
+
+.RuntimeStatus--Opening {
+  color: #a16207;
+}
+
+.RuntimeStatus--Ready {
+  color: #16803a;
 }
 
 .PrimaryButton {

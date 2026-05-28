@@ -1,11 +1,13 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
 import type { CodexStatus } from "../Domain/CodexInstallation";
+import type { RuntimeStatus } from "../Domain/RuntimeStatus";
 
 export type CodexActionPanelProps = Readonly<{
   actionStatus: ActionStatus;
   codexStatus: CodexStatus;
   onRefresh: () => void;
   onOpenCodex: () => void;
+  runtimeStatus: RuntimeStatus;
 }>;
 
 export function createCodexActionPanel({
@@ -13,6 +15,7 @@ export function createCodexActionPanel({
   codexStatus,
   onRefresh,
   onOpenCodex,
+  runtimeStatus,
 }: CodexActionPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
   panel.className = "CodexActionPanel";
@@ -30,12 +33,12 @@ export function createCodexActionPanel({
   const openCodexButton = document.createElement("button");
   openCodexButton.className = "PrimaryButton";
   openCodexButton.type = "button";
-  openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus);
+  openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus, runtimeStatus);
   openCodexButton.textContent = actionStatus.state === "Running" ? actionStatus.label : "Abrir Codex";
   openCodexButton.addEventListener("click", onOpenCodex);
 
   actions.append(refreshCodexButton, openCodexButton);
-  panel.append(createActionStatusText(actionStatus), actions);
+  panel.append(createRuntimeStatusElement(runtimeStatus), actions);
 
   return panel;
 }
@@ -44,28 +47,28 @@ function canRefreshCodex(codexStatus: CodexStatus, actionStatus: ActionStatus): 
   return codexStatus.state !== "Checking" && actionStatus.state !== "Running";
 }
 
-function canOpenCodex(codexStatus: CodexStatus, actionStatus: ActionStatus): boolean {
-  return codexStatus.state === "Found" && actionStatus.state !== "Running";
+function canOpenCodex(
+  codexStatus: CodexStatus,
+  actionStatus: ActionStatus,
+  runtimeStatus: RuntimeStatus
+): boolean {
+  return codexStatus.state === "Found" && actionStatus.state !== "Running" && runtimeStatus !== "Opening";
 }
 
-function createActionStatusText(actionStatus: ActionStatus): HTMLParagraphElement {
-  const text = document.createElement("p");
-  text.className = "ActionStatusText";
+function createRuntimeStatusElement(runtimeStatus: RuntimeStatus): HTMLParagraphElement {
+  const element = document.createElement("p");
+  element.className = `RuntimeStatus RuntimeStatus--${runtimeStatus}`;
+  element.textContent = `Estatus: ${formatRuntimeStatus(runtimeStatus)}`;
+  return element;
+}
 
-  switch (actionStatus.state) {
-    case "Idle":
-      text.textContent = "Pronto para abrir Codex em prioridade alta.";
-      break;
-    case "Running":
-      text.textContent = actionStatus.label;
-      break;
-    case "Succeeded":
-      text.textContent = actionStatus.message;
-      break;
-    case "Failed":
-      text.textContent = actionStatus.message;
-      break;
+function formatRuntimeStatus(runtimeStatus: RuntimeStatus): string {
+  switch (runtimeStatus) {
+    case "Waiting":
+      return "esperando...";
+    case "Opening":
+      return "abrindo codex...";
+    case "Ready":
+      return "pronto.";
   }
-
-  return text;
 }

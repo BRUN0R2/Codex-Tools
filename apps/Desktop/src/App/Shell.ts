@@ -58,6 +58,7 @@ export function createShell({
       codexStatus: state.codexStatus,
       onRefresh: onCodexRefresh,
       onOpenCodex,
+      runtimeStatus: state.runtimeStatus,
     })
   );
 
