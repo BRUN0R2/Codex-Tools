@@ -2,10 +2,10 @@
 
 ## Base
 
-- [ ] Confirmar stack atualizada antes de implementar.
-- [ ] Criar estrutura modular do projeto.
-- [ ] Configurar build moderno e enxuto.
-- [ ] Registrar decisoes tecnicas essenciais em `docs/INFO.md`.
+- [x] Confirmar stack atualizada antes de implementar.
+- [x] Criar estrutura modular do projeto.
+- [x] Configurar build moderno e enxuto.
+- [x] Registrar decisoes tecnicas essenciais em `docs/INFO.md`.
 
 ## Arquitetura
 
@@ -24,7 +24,7 @@
 
 ## Interface Tauri
 
-- [ ] Criar app Tauri usando a versao mais atualizada no momento da implementacao.
+- [x] Criar app Tauri usando a versao mais atualizada no momento da implementacao.
 - [ ] Criar tela principal direta para controlar o Codex.
 - [ ] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
 - [ ] Adicionar acoes para abrir Codex, instalar automacao e remover automacao.
@@ -39,7 +39,7 @@
 
 ## Validacao
 
-- [ ] Compilar em Release.
+- [x] Compilar em Release.
 - [ ] Validar abertura do Codex em runtime.
 - [ ] Validar aplicacao de prioridade `Normal`.
 - [ ] Validar aplicacao de prioridade `Alta`.
