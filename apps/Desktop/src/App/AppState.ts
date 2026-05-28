@@ -6,6 +6,11 @@ import {
   type ActionStatus,
 } from "../Domain/ActionStatus";
 import {
+  UNCHECKED_AUTOMATION_STATUS,
+  createFailedAutomationStatus,
+  type AutomationStatus,
+} from "../Domain/Automation";
+import {
   CHECKING_CODEX_STATUS,
   UNCHECKED_CODEX_STATUS,
   createFailedCodexStatus,
@@ -15,12 +20,14 @@ import type { ProcessPriority, SelectedProcessPriority } from "../Domain/Process
 
 export type AppState = Readonly<{
   actionStatus: ActionStatus;
+  automationStatus: AutomationStatus;
   codexStatus: CodexStatus;
   selectedPriority: SelectedProcessPriority;
 }>;
 
 export const INITIAL_APP_STATE: AppState = {
   actionStatus: IDLE_ACTION_STATUS,
+  automationStatus: UNCHECKED_AUTOMATION_STATUS,
   codexStatus: UNCHECKED_CODEX_STATUS,
   selectedPriority: null,
 };
@@ -69,4 +76,15 @@ export function setFailedActionStatus(state: AppState, message: string): AppStat
     ...state,
     actionStatus: createFailedActionStatus(message),
   };
+}
+
+export function setAutomationStatus(state: AppState, automationStatus: AutomationStatus): AppState {
+  return {
+    ...state,
+    automationStatus,
+  };
+}
+
+export function setFailedAutomationStatus(state: AppState, message: string): AppState {
+  return setAutomationStatus(state, createFailedAutomationStatus(message));
 }

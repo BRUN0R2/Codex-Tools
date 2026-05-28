@@ -28,15 +28,15 @@
 - [x] Criar tela principal direta para controlar o Codex.
 - [x] Adicionar seletor explicito de prioridade `Normal` ou `Alta`.
 - [x] Adicionar acao real para abrir Codex.
-- [ ] Adicionar acoes reais para instalar e remover automacao.
+- [x] Adicionar acoes reais para instalar e remover automacao.
 - [x] Evitar textos, controles e estados sem uso real.
 
 ## Automacao
 
-- [ ] Criar instalacao em caminho estavel fora de `build`.
-- [ ] Criar tarefa do Windows somente com configuracao escolhida pelo usuario.
-- [ ] Criar atalho direto para abrir a interface.
-- [ ] Adicionar remocao limpa da tarefa, atalho e binario instalado.
+- [x] Criar instalacao em caminho estavel fora de `build`.
+- [x] Criar tarefa do Windows somente com configuracao escolhida pelo usuario.
+- [x] Criar atalho direto para abrir a interface.
+- [x] Adicionar remocao limpa da tarefa, atalho e binario instalado.
 
 ## Validacao
 

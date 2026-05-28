@@ -9,8 +9,9 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
     CreateToolhelp32Snapshot, PROCESSENTRY32W, Process32FirstW, Process32NextW, TH32CS_SNAPPROCESS,
 };
 use windows::Win32::System::Threading::{
-    HIGH_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
-    PROCESS_SET_INFORMATION, SetPriorityClass, WaitForInputIdle,
+    GetExitCodeProcess, HIGH_PRIORITY_CLASS, INFINITE, NORMAL_PRIORITY_CLASS, OpenProcess,
+    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION, SetPriorityClass, WaitForInputIdle,
+    WaitForSingleObject,
 };
 use windows::Win32::UI::Shell::{SEE_MASK_NOCLOSEPROCESS, SHELLEXECUTEINFOW, ShellExecuteExW};
 use windows::Win32::UI::WindowsAndMessaging::SW_SHOWNORMAL;
@@ -34,32 +35,32 @@ pub struct PriorityApplication {
 }
 
 pub fn launch_as_administrator(executable_path: &Path) -> Result<(), Error> {
-    let verb = wide_from_str(RUN_AS_ADMINISTRATOR_VERB);
-    let file = wide_from_os_str(executable_path.as_os_str());
-
-    let mut execute_info = SHELLEXECUTEINFOW {
-        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
-        fMask: SEE_MASK_NOCLOSEPROCESS,
-        hwnd: HWND::default(),
-        lpVerb: PCWSTR::from_raw(verb.as_ptr()),
-        lpFile: PCWSTR::from_raw(file.as_ptr()),
-        nShow: SW_SHOWNORMAL.0,
-        ..Default::default()
-    };
-
-    unsafe {
-        ShellExecuteExW(&mut execute_info)?;
-    }
-
-    if let Some(handle) = OwnedWindowsHandle::new(execute_info.hProcess) {
-        unsafe {
-            let _ = WaitForInputIdle(handle.raw(), WAIT_FOR_INPUT_IDLE_TIMEOUT_MILLISECONDS);
-        }
-
-        drop(handle);
-    }
+    shell_execute(
+        executable_path,
+        None,
+        Some(RUN_AS_ADMINISTRATOR_VERB),
+        ShellExecuteWaitMode::InputIdle,
+    )?;
 
     Ok(())
+}
+
+pub fn launch_normally(executable_path: &Path) -> Result<(), Error> {
+    shell_execute(executable_path, None, None, ShellExecuteWaitMode::InputIdle)?;
+
+    Ok(())
+}
+
+pub fn run_as_administrator_and_wait(
+    executable_path: &Path,
+    parameters: &str,
+) -> Result<u32, Error> {
+    shell_execute(
+        executable_path,
+        Some(parameters),
+        Some(RUN_AS_ADMINISTRATOR_VERB),
+        ShellExecuteWaitMode::Exit,
+    )
 }
 
 pub fn apply_priority_to_running_codex(
@@ -117,6 +118,67 @@ fn priority_class(
     match priority {
         WindowsProcessPriority::Normal => NORMAL_PRIORITY_CLASS,
         WindowsProcessPriority::High => HIGH_PRIORITY_CLASS,
+    }
+}
+
+enum ShellExecuteWaitMode {
+    Exit,
+    InputIdle,
+}
+
+fn shell_execute(
+    executable_path: &Path,
+    parameters: Option<&str>,
+    verb: Option<&str>,
+    wait_mode: ShellExecuteWaitMode,
+) -> Result<u32, Error> {
+    let verb = verb.map(wide_from_str);
+    let file = wide_from_os_str(executable_path.as_os_str());
+    let parameters = parameters.map(wide_from_str);
+
+    let mut execute_info = SHELLEXECUTEINFOW {
+        cbSize: size_of::<SHELLEXECUTEINFOW>() as u32,
+        fMask: SEE_MASK_NOCLOSEPROCESS,
+        hwnd: HWND::default(),
+        lpVerb: verb
+            .as_ref()
+            .map_or(PCWSTR::null(), |value| PCWSTR::from_raw(value.as_ptr())),
+        lpFile: PCWSTR::from_raw(file.as_ptr()),
+        lpParameters: parameters
+            .as_ref()
+            .map_or(PCWSTR::null(), |value| PCWSTR::from_raw(value.as_ptr())),
+        nShow: SW_SHOWNORMAL.0,
+        ..Default::default()
+    };
+
+    unsafe {
+        ShellExecuteExW(&mut execute_info)?;
+    }
+
+    let process_handle =
+        OwnedWindowsHandle::new(execute_info.hProcess).ok_or_else(Error::from_thread)?;
+
+    match wait_mode {
+        ShellExecuteWaitMode::InputIdle => unsafe {
+            let _ = WaitForInputIdle(
+                process_handle.raw(),
+                WAIT_FOR_INPUT_IDLE_TIMEOUT_MILLISECONDS,
+            );
+            Ok(0)
+        },
+        ShellExecuteWaitMode::Exit => {
+            unsafe {
+                let _ = WaitForSingleObject(process_handle.raw(), INFINITE);
+            }
+
+            let mut exit_code = 0;
+
+            unsafe {
+                GetExitCodeProcess(process_handle.raw(), &mut exit_code)?;
+            }
+
+            Ok(exit_code)
+        }
     }
 }
 

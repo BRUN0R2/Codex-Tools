@@ -3,10 +3,11 @@ use std::time::Duration;
 
 use serde::{Deserialize, Serialize};
 
-use crate::contracts::{CommandError, CommandErrorCode};
+use crate::contracts::{CommandError, CommandErrorCode, ProcessPriorityRequest};
 use crate::platform::windows_codex::locate_codex_installation;
 use crate::platform::windows_process::{
     WindowsProcessPriority, apply_priority_to_running_codex, launch_as_administrator,
+    launch_normally,
 };
 
 const PRIORITY_APPLICATION_ATTEMPTS: usize = 6;
@@ -26,18 +27,17 @@ pub struct CodexLaunchRequest {
     pub priority: ProcessPriorityRequest,
 }
 
-#[derive(Deserialize, Serialize, Clone, Copy)]
-pub enum ProcessPriorityRequest {
-    Normal,
-    High,
-}
-
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CodexLaunchResponse {
     pub executable_path: String,
     pub priority: ProcessPriorityRequest,
     pub updated_process_count: usize,
+}
+
+pub enum CodexLaunchElevation {
+    Administrator,
+    CurrentToken,
 }
 
 #[tauri::command]
@@ -62,6 +62,13 @@ pub fn get_codex_status() -> Result<CodexStatusResponse, CommandError> {
 
 #[tauri::command]
 pub fn open_codex(request: CodexLaunchRequest) -> Result<CodexLaunchResponse, CommandError> {
+    launch_codex_with_priority(request.priority, CodexLaunchElevation::Administrator)
+}
+
+pub fn launch_codex_with_priority(
+    priority: ProcessPriorityRequest,
+    elevation: CodexLaunchElevation,
+) -> Result<CodexLaunchResponse, CommandError> {
     let installation = locate_codex_installation();
     let executable_path = installation.executable_path().ok_or_else(|| {
         CommandError::new(
@@ -70,15 +77,18 @@ pub fn open_codex(request: CodexLaunchRequest) -> Result<CodexLaunchResponse, Co
         )
     })?;
 
-    launch_as_administrator(executable_path).map_err(|error| {
+    match elevation {
+        CodexLaunchElevation::Administrator => launch_as_administrator(executable_path),
+        CodexLaunchElevation::CurrentToken => launch_normally(executable_path),
+    }
+    .map_err(|error| {
         CommandError::new(
             CommandErrorCode::WindowsApiFailed,
             format!("Failed to launch Codex as administrator: {error}"),
         )
     })?;
 
-    let priority_application =
-        apply_priority_with_retry(WindowsProcessPriority::from(request.priority))?;
+    let priority_application = apply_priority_with_retry(WindowsProcessPriority::from(priority))?;
 
     if priority_application.updated_process_ids.is_empty() {
         return Err(CommandError::new(
@@ -89,7 +99,7 @@ pub fn open_codex(request: CodexLaunchRequest) -> Result<CodexLaunchResponse, Co
 
     Ok(CodexLaunchResponse {
         executable_path: executable_path.to_string_lossy().into_owned(),
-        priority: request.priority,
+        priority,
         updated_process_count: priority_application.updated_process_ids.len(),
     })
 }

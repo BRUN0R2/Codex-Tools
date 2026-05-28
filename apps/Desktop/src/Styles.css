@@ -83,6 +83,13 @@ button {
   grid-template-columns: auto minmax(0, 1fr);
 }
 
+.AutomationActionPanel {
+  align-items: center;
+  display: grid;
+  gap: 12px;
+  grid-template-columns: auto auto minmax(0, 1fr);
+}
+
 .CodexStatusText {
   color: #353d49;
   font-size: 13px;
@@ -115,6 +122,26 @@ button {
   border-color: #d8dee7;
   color: #7a8491;
   cursor: wait;
+}
+
+.SecondaryButton {
+  background: #ffffff;
+  border: 1px solid #b9c3cf;
+  border-radius: 8px;
+  color: #171a1f;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 38px;
+  min-width: 128px;
+  padding: 0 14px;
+}
+
+.SecondaryButton:disabled {
+  background: #eef2f6;
+  border-color: #d8dee7;
+  color: #7a8491;
+  cursor: not-allowed;
 }
 
 .PrioritySelector {
@@ -191,6 +218,10 @@ button {
   }
 
   .CodexActionPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .AutomationActionPanel {
     grid-template-columns: 1fr;
   }
 }
