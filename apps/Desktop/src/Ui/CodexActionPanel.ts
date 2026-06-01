@@ -7,6 +7,7 @@ export type CodexActionPanelProps = Readonly<{
   codexStatus: CodexStatus;
   onRefresh: () => void;
   onOpenCodex: () => void;
+  onRegisterRunAsAdministrator: () => void;
   runtimeStatus: RuntimeStatus;
 }>;
 
@@ -15,6 +16,7 @@ export function createCodexActionPanel({
   codexStatus,
   onRefresh,
   onOpenCodex,
+  onRegisterRunAsAdministrator,
   runtimeStatus,
 }: CodexActionPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
@@ -30,20 +32,40 @@ export function createCodexActionPanel({
   refreshCodexButton.textContent = codexStatus.state === "Checking" ? "Verificando" : "Verificar Codex";
   refreshCodexButton.addEventListener("click", onRefresh);
 
+  const registerAdminButton = document.createElement("button");
+  registerAdminButton.className = "SecondaryButton";
+  registerAdminButton.type = "button";
+  registerAdminButton.disabled = !canRegisterRunAsAdministrator(codexStatus, actionStatus);
+  registerAdminButton.textContent =
+    actionStatus.state === "Running" && actionStatus.label === "Salvando admin"
+      ? "Salvando"
+      : "Salvar admin";
+  registerAdminButton.addEventListener("click", onRegisterRunAsAdministrator);
+
   const openCodexButton = document.createElement("button");
   openCodexButton.className = "PrimaryButton";
   openCodexButton.type = "button";
   openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus, runtimeStatus);
-  openCodexButton.textContent = actionStatus.state === "Running" ? actionStatus.label : "Abrir Codex";
+  openCodexButton.textContent =
+    runtimeStatus === "Opening" && actionStatus.state === "Running"
+      ? actionStatus.label
+      : "Abrir Codex";
   openCodexButton.addEventListener("click", onOpenCodex);
 
-  actions.append(refreshCodexButton, openCodexButton);
+  actions.append(refreshCodexButton, registerAdminButton, openCodexButton);
   panel.append(createRuntimeStatusElement(runtimeStatus), actions);
 
   return panel;
 }
 
 function canRefreshCodex(codexStatus: CodexStatus, actionStatus: ActionStatus): boolean {
+  return codexStatus.state !== "Checking" && actionStatus.state !== "Running";
+}
+
+function canRegisterRunAsAdministrator(
+  codexStatus: CodexStatus,
+  actionStatus: ActionStatus
+): boolean {
   return codexStatus.state !== "Checking" && actionStatus.state !== "Running";
 }
 

@@ -1,4 +1,8 @@
-import { getCodexStatus, openCodex } from "../Backend/CodexCommands";
+import {
+  getCodexStatus,
+  openCodex,
+  registerCodexRunAsAdministrator,
+} from "../Backend/CodexCommands";
 import {
   INITIAL_APP_STATE,
   clearConsoleMessages,
@@ -19,6 +23,7 @@ import {
 } from "../Domain/PriorityStabilization";
 
 const OPEN_CODEX_ACTION_LABEL = "Abrindo Codex";
+const SAVE_ADMIN_MODE_ACTION_LABEL = "Salvando admin";
 const CODEX_OPEN_STATUS_POLL_ATTEMPTS = 36;
 const CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS = 700;
 
@@ -41,6 +46,9 @@ export function mountApp(root: HTMLElement): void {
         },
         onOpenCodex(): void {
           void launchCodex();
+        },
+        onRegisterRunAsAdministrator(): void {
+          void saveRunAsAdministratorMode();
         },
       })
     );
@@ -96,6 +104,26 @@ export function mountApp(root: HTMLElement): void {
     }
 
     state = setFailedActionStatus(setWaitingRuntimeStatus(state), result.error.message);
+    render();
+    await refreshCodexStatus();
+  }
+
+  async function saveRunAsAdministratorMode(): Promise<void> {
+    state = setRunningActionStatus(state, SAVE_ADMIN_MODE_ACTION_LABEL);
+    render();
+
+    const result = await registerCodexRunAsAdministrator();
+    if (!result.ok) {
+      state = setFailedActionStatus(state, result.error.message);
+      render();
+      return;
+    }
+
+    const registeredCount = result.value.registeredExecutablePaths.length;
+    state = setSucceededActionStatus(
+      state,
+      `Modo administrador salvo para ${registeredCount} executavel(is) do Codex.`
+    );
     render();
     await refreshCodexStatus();
   }

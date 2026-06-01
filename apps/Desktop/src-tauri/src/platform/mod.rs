@@ -1,3 +1,4 @@
+pub mod windows_app_compat;
 pub mod windows_codex;
 pub mod windows_handle;
 pub mod windows_privilege;

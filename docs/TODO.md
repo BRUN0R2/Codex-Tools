@@ -21,11 +21,14 @@
 - [x] Executar estabilizacao de prioridade sem bloquear a interface.
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.
+- [x] Salvar modo administrador persistente para executaveis Codex via
+      AppCompat Registry.
 
 ## Interface
 
 - [x] Simplificar tela para foco unico em abrir Codex.
 - [x] Remover controles extras de automacao e Registry.
+- [x] Adicionar controle enxuto para salvar modo administrador persistente.
 - [x] Mover `Abrir Codex` para o canto inferior direito.
 - [x] Mostrar processos Codex em prioridade alta e como administrador.
 - [x] Mover `Verificar Codex` para o lado esquerdo de `Abrir Codex`.

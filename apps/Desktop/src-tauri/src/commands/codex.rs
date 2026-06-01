@@ -2,7 +2,10 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::contracts::{CommandError, CommandErrorCode};
-use crate::platform::windows_codex::locate_codex_installation;
+use crate::platform::windows_app_compat::register_run_as_administrator;
+use crate::platform::windows_codex::{
+    collect_codex_executable_inventory, locate_codex_installation,
+};
 use crate::platform::windows_process::{
     CodexProcessInspection, WindowsProcessElevationState, WindowsProcessPriorityState,
     inspect_running_codex_processes,
@@ -58,6 +61,13 @@ pub struct CodexLaunchResponse {
 }
 
 #[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct CodexRunAsAdministratorRegistrationResponse {
+    pub registered_executable_paths: Vec<String>,
+    pub scanned_directories: Vec<String>,
+}
+
+#[derive(Serialize)]
 pub enum CodexLaunchPriorityResponse {
     High,
 }
@@ -107,6 +117,35 @@ pub fn open_codex(
     priority_stabilization: State<'_, PriorityStabilizationStore>,
 ) -> Result<CodexLaunchResponse, CommandError> {
     launch_codex_with_high_priority(priority_stabilization.inner().clone())
+}
+
+#[tauri::command]
+pub fn register_codex_run_as_administrator()
+-> Result<CodexRunAsAdministratorRegistrationResponse, CommandError> {
+    let inventory = collect_codex_executable_inventory();
+    if inventory.executable_paths().is_empty() {
+        return Err(CommandError::new(
+            CommandErrorCode::CodexNotFound,
+            "No Codex executable was found to register as administrator.",
+        ));
+    }
+
+    for executable_path in inventory.executable_paths() {
+        register_run_as_administrator(executable_path).map_err(|error| {
+            CommandError::new(
+                CommandErrorCode::WindowsApiFailed,
+                format!(
+                    "Failed to save administrator mode for {}: {error}",
+                    executable_path.to_string_lossy()
+                ),
+            )
+        })?;
+    }
+
+    Ok(CodexRunAsAdministratorRegistrationResponse {
+        registered_executable_paths: inventory.executable_paths_as_strings(),
+        scanned_directories: inventory.scanned_directories_as_strings(),
+    })
 }
 
 fn launch_codex_with_high_priority(

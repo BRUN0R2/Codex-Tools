@@ -130,7 +130,7 @@ button {
 .CodexActionButtons {
   display: grid;
   gap: 12px;
-  grid-template-columns: auto auto;
+  grid-template-columns: auto auto auto;
 }
 
 .RuntimeStatus {

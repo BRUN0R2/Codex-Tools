@@ -18,7 +18,8 @@ pub fn run() {
         .manage(priority::stabilization::PriorityStabilizationStore::default())
         .invoke_handler(tauri::generate_handler![
             commands::codex::get_codex_status,
-            commands::codex::open_codex
+            commands::codex::open_codex,
+            commands::codex::register_codex_run_as_administrator
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -36,7 +36,11 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - O status da estabilizacao deve expor `Idle`, `Running`, `Succeeded` e `Failed`.
 - Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
 - Elevação `normal` no console indica processo existente ou processo que nao foi reaberto com token administrativo.
-- Manter automacao e Registry fora da interface simplificada.
+- Manter automacao generica fora da interface simplificada.
+- Expor apenas uma acao de Registry: salvar `~ RUNASADMIN` em
+  `HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`
+  para todos os `.exe` encontrados nas pastas Codex conhecidas, incluindo a
+  pasta versionada dinamica `OpenAI.Codex_*__2p2nqsd0c76g0`.
 
 ## Validacao atual
 

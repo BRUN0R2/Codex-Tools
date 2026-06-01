@@ -9,6 +9,7 @@ type ShellProps = Readonly<{
   onConsoleClear: () => void;
   onConsoleCopy: () => void;
   onOpenCodex: () => void;
+  onRegisterRunAsAdministrator: () => void;
 }>;
 
 type TextElementTagName = "h1" | "h2" | "p";
@@ -30,6 +31,7 @@ export function createShell({
   onConsoleClear,
   onConsoleCopy,
   onOpenCodex,
+  onRegisterRunAsAdministrator,
 }: ShellProps): HTMLElementTagNameMap["section"] {
   const shell = document.createElement("section");
   shell.className = "AppShell";
@@ -58,6 +60,7 @@ export function createShell({
       codexStatus: state.codexStatus,
       onRefresh: onCodexRefresh,
       onOpenCodex,
+      onRegisterRunAsAdministrator,
       runtimeStatus: state.runtimeStatus,
     })
   );
