@@ -40,7 +40,8 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Expor apenas uma acao de Registry: salvar `~ RUNASADMIN` em
   `HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`
   para todos os `.exe` encontrados nas pastas Codex conhecidas, incluindo a
-  pasta versionada dinamica `OpenAI.Codex_*__2p2nqsd0c76g0`.
+  pasta versionada dinamica `OpenAI.Codex_*__2p2nqsd0c76g0` e
+  `%USERPROFILE%\.codex`.
 
 ## Validacao atual
 

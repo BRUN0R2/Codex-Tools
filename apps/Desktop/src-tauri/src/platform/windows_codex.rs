@@ -8,7 +8,9 @@ const CODEX_ALIAS_FILE_NAME: &str = "codex";
 const LOCAL_APP_DATA_ENVIRONMENT_VARIABLE: &str = "LOCALAPPDATA";
 const PATH_ENVIRONMENT_VARIABLE: &str = "PATH";
 const PROGRAM_FILES_ENVIRONMENT_VARIABLE: &str = "ProgramFiles";
+const USER_PROFILE_ENVIRONMENT_VARIABLE: &str = "USERPROFILE";
 const WINDOWS_APPS_DIRECTORY_NAME: &str = "WindowsApps";
+const CODEX_HOME_DIRECTORY_NAME: &str = ".codex";
 const CODEX_PACKAGE_DIRECTORY_PREFIX: &str = "OpenAI.Codex_";
 const CODEX_PACKAGE_DIRECTORY_SUFFIX: &str = "__2p2nqsd0c76g0";
 const CODEX_DESKTOP_RELATIVE_PATH: &[&str] = &["app", CODEX_DESKTOP_EXECUTABLE_FILE_NAME];
@@ -167,6 +169,15 @@ fn collect_codex_installation_directories(directories: &mut Vec<PathBuf>) {
                     "Codex",
                 ],
             ),
+        );
+    }
+
+    if let Some(user_profile_path) =
+        env::var_os(USER_PROFILE_ENVIRONMENT_VARIABLE).map(PathBuf::from)
+    {
+        push_directory_candidate(
+            directories,
+            user_profile_path.join(CODEX_HOME_DIRECTORY_NAME),
         );
     }
 }
