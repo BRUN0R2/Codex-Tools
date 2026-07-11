@@ -16,7 +16,7 @@ export function createRuntimeStatusFromCodexStatus(
   currentStatus: RuntimeStatus,
   codexStatus: CodexStatus
 ): RuntimeStatus {
-  if (codexStatusHasProcesses(codexStatus)) {
+  if (codexStatusHasOnlyHighPriorityProcesses(codexStatus)) {
     return "Ready";
   }
 

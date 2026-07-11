@@ -37,6 +37,8 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Reaplicar prioridade alta por alguns ciclos curtos para cobrir os processos que surgem apos o carregamento inicial.
 - A estabilizacao de prioridade roda em segundo plano para manter a interface responsiva.
 - O status da estabilizacao deve expor `Idle`, `Running`, `Succeeded` e `Failed`.
+- O status de runtime `pronto` exige ao menos um processo Codex e todos os
+  processos detectados em prioridade alta.
 - Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
 - Elevação `normal` no console indica processo existente ou processo que nao foi reaberto com token administrativo.
 - Manter automacao generica fora da interface simplificada.

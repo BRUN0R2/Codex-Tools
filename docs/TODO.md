@@ -46,6 +46,7 @@
 - [x] Separar a interface em abas laterais `Admin` e `Limpeza`.
 - [x] Expor limpeza geral em um botao unico com resumo operacional.
 - [x] Modernizar hierarquia visual, navegacao, estados e responsividade.
+- [x] Exibir `pronto` somente com todos os processos em prioridade alta.
 
 ## Dependencias
 
