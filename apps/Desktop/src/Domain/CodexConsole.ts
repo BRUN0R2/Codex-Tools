@@ -39,8 +39,10 @@ function createProcessMessages(processes: readonly CodexProcess[]): readonly Con
 function formatProcessMessage(process: CodexProcess): ConsoleMessage {
   const elevation = formatElevation(process.elevation);
   const priority = formatPriority(process.priority);
+  const executablePath =
+    process.executablePath === null ? "" : ` | Caminho: ${process.executablePath}`;
 
-  return `Processo: ${process.processName} | PID: ${process.processId} | Elevação: ${elevation} | Prioridade: ${priority}`;
+  return `Processo: ${process.processName} | PID: ${process.processId} | Elevacao: ${elevation} | Prioridade: ${priority}${executablePath}`;
 }
 
 function formatElevation(elevation: CodexProcessElevation): string {

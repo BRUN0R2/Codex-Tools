@@ -19,6 +19,7 @@ export type CodexProcessElevation = "Elevated" | "NotElevated" | "Unavailable";
 export type CodexProcess = Readonly<{
   processId: number;
   processName: string;
+  executablePath: string | null;
   priority: CodexProcessPriority;
   elevation: CodexProcessElevation;
 }>;
@@ -65,6 +66,7 @@ export type CodexStatusResponse = Readonly<{
 export type CodexProcessResponse = Readonly<{
   processId: number;
   processName: string;
+  executablePath: string | null;
   priority: CodexProcessPriority;
   elevation: CodexProcessElevation;
 }>;
@@ -133,6 +135,13 @@ function parseCodexProcess(process: CodexProcessResponse): CodexProcess {
 
   if (process.processName.length === 0) {
     throw new Error("Codex process response is missing the process name.");
+  }
+
+  if (
+    process.executablePath !== null &&
+    (typeof process.executablePath !== "string" || process.executablePath.length === 0)
+  ) {
+    throw new Error("Codex process response has an invalid executable path.");
   }
 
   if (!isCodexProcessPriority(process.priority)) {

@@ -19,6 +19,8 @@ impl CommandError {
 #[derive(Serialize, Clone, Copy)]
 #[serde(rename_all = "camelCase")]
 pub enum CommandErrorCode {
+    CleanupBlocked,
+    CleanupFailed,
     CodexNotFound,
     InvalidState,
     WindowsApiFailed,

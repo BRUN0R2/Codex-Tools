@@ -1,31 +1,28 @@
+use std::cmp::Ordering;
 use std::env;
 use std::fs;
 use std::path::{Path, PathBuf};
 
-const CODEX_DESKTOP_EXECUTABLE_FILE_NAME: &str = "Codex.exe";
+const CODEX_DESKTOP_EXECUTABLE_FILE_NAMES: &[&str] = &["ChatGPT.exe", "Codex.exe"];
 const CODEX_EXECUTABLE_FILE_NAME: &str = "codex.exe";
-const CODEX_ALIAS_FILE_NAME: &str = "codex";
+pub const CODEX_DO_NOT_DE_ELEVATE_ARGUMENT: &str = "--do-not-de-elevate";
 const LOCAL_APP_DATA_ENVIRONMENT_VARIABLE: &str = "LOCALAPPDATA";
 const PATH_ENVIRONMENT_VARIABLE: &str = "PATH";
 const PROGRAM_FILES_ENVIRONMENT_VARIABLE: &str = "ProgramFiles";
-const USER_PROFILE_ENVIRONMENT_VARIABLE: &str = "USERPROFILE";
 const WINDOWS_APPS_DIRECTORY_NAME: &str = "WindowsApps";
-const CODEX_HOME_DIRECTORY_NAME: &str = ".codex";
 const CODEX_PACKAGE_DIRECTORY_PREFIX: &str = "OpenAI.Codex_";
 const CODEX_PACKAGE_DIRECTORY_SUFFIX: &str = "__2p2nqsd0c76g0";
-const CODEX_DESKTOP_RELATIVE_PATH: &[&str] = &["app", CODEX_DESKTOP_EXECUTABLE_FILE_NAME];
+const CODEX_PACKAGE_FAMILY_DIRECTORY_NAME: &str = "OpenAI.Codex_2p2nqsd0c76g0";
 const CODEX_RESOURCE_RELATIVE_PATH: &[&str] = &["app", "resources", CODEX_EXECUTABLE_FILE_NAME];
-
-const LOCAL_CODEX_RELATIVE_PATH: &[&str] = &["OpenAI", "Codex", "bin", CODEX_EXECUTABLE_FILE_NAME];
-const PACKAGE_CODEX_RELATIVE_PATH: &[&str] = &[
+const LOCAL_CODEX_BIN_RELATIVE_PATH: &[&str] = &["OpenAI", "Codex", "bin"];
+const PACKAGE_CODEX_BIN_RELATIVE_PATH: &[&str] = &[
     "Packages",
-    "OpenAI.Codex_2p2nqsd0c76g0",
+    CODEX_PACKAGE_FAMILY_DIRECTORY_NAME,
     "LocalCache",
     "Local",
     "OpenAI",
     "Codex",
     "bin",
-    CODEX_EXECUTABLE_FILE_NAME,
 ];
 
 pub struct CodexInstallation {
@@ -82,7 +79,7 @@ impl CodexExecutableInventory {
 }
 
 pub fn locate_codex_installation() -> CodexInstallation {
-    let checked_paths = collect_codex_candidate_paths();
+    let checked_paths = collect_codex_desktop_candidate_paths();
     let executable_path = checked_paths.iter().find(|path| path.is_file()).cloned();
 
     CodexInstallation {
@@ -95,17 +92,32 @@ pub fn collect_codex_executable_inventory() -> CodexExecutableInventory {
     let mut executable_paths = Vec::new();
     let mut scanned_directories = Vec::new();
 
-    collect_codex_installation_directories(&mut scanned_directories);
-
-    for directory in &scanned_directories {
-        collect_executables_in_directory(directory, &mut executable_paths);
+    for package_directory in collect_windows_apps_package_directories() {
+        push_directory_candidate(&mut scanned_directories, package_directory.clone());
+        push_existing_codex_desktop_candidates(&mut executable_paths, &package_directory);
+        push_existing_relative_candidate(
+            &mut executable_paths,
+            &package_directory,
+            CODEX_RESOURCE_RELATIVE_PATH,
+        );
     }
 
-    for candidate_path in collect_codex_candidate_paths() {
-        if candidate_path.is_file() && is_windows_executable(&candidate_path) {
-            push_candidate(&mut executable_paths, candidate_path);
-        }
+    if let Some(local_app_data_path) =
+        env::var_os(LOCAL_APP_DATA_ENVIRONMENT_VARIABLE).map(PathBuf::from)
+    {
+        collect_runtime_bin_executables(
+            &build_relative_path(&local_app_data_path, LOCAL_CODEX_BIN_RELATIVE_PATH),
+            &mut scanned_directories,
+            &mut executable_paths,
+        );
+        collect_runtime_bin_executables(
+            &build_relative_path(&local_app_data_path, PACKAGE_CODEX_BIN_RELATIVE_PATH),
+            &mut scanned_directories,
+            &mut executable_paths,
+        );
     }
+
+    push_path_codex_executables(&mut executable_paths);
 
     CodexExecutableInventory {
         executable_paths,
@@ -113,161 +125,155 @@ pub fn collect_codex_executable_inventory() -> CodexExecutableInventory {
     }
 }
 
-fn collect_codex_candidate_paths() -> Vec<PathBuf> {
+pub fn is_codex_app_server_executable_path(executable_path: &str) -> bool {
+    let normalized_path = executable_path.replace('/', "\\").to_ascii_lowercase();
+
+    normalized_path.ends_with("\\app\\resources\\codex.exe")
+        || (normalized_path.contains("\\openai\\codex\\bin\\")
+            && normalized_path.ends_with("\\codex.exe"))
+}
+
+pub fn is_codex_desktop_executable_path(executable_path: &str) -> bool {
+    let normalized_path = executable_path.replace('/', "\\").to_ascii_lowercase();
+
+    normalized_path.contains("\\windowsapps\\openai.codex_")
+        && (normalized_path.ends_with("\\app\\chatgpt.exe")
+            || normalized_path.ends_with("\\app\\codex.exe"))
+}
+
+fn collect_codex_desktop_candidate_paths() -> Vec<PathBuf> {
     let mut candidate_paths = Vec::new();
 
-    push_windows_apps_candidates(&mut candidate_paths);
-
-    if let Some(local_app_data_path) =
-        env::var_os(LOCAL_APP_DATA_ENVIRONMENT_VARIABLE).map(PathBuf::from)
-    {
-        push_relative_candidate(
-            &mut candidate_paths,
-            &local_app_data_path,
-            LOCAL_CODEX_RELATIVE_PATH,
-        );
-        push_relative_candidate(
-            &mut candidate_paths,
-            &local_app_data_path,
-            PACKAGE_CODEX_RELATIVE_PATH,
-        );
-    }
-
-    if let Some(path_value) = env::var_os(PATH_ENVIRONMENT_VARIABLE) {
-        for directory in env::split_paths(&path_value) {
-            push_candidate(
-                &mut candidate_paths,
-                directory.join(CODEX_EXECUTABLE_FILE_NAME),
-            );
-            push_candidate(&mut candidate_paths, directory.join(CODEX_ALIAS_FILE_NAME));
-        }
+    for package_directory in collect_windows_apps_package_directories() {
+        push_codex_desktop_candidates(&mut candidate_paths, &package_directory);
     }
 
     candidate_paths
 }
 
-fn collect_codex_installation_directories(directories: &mut Vec<PathBuf>) {
-    push_windows_apps_directories(directories);
-
-    if let Some(local_app_data_path) =
-        env::var_os(LOCAL_APP_DATA_ENVIRONMENT_VARIABLE).map(PathBuf::from)
-    {
-        push_directory_candidate(
-            directories,
-            build_relative_path(&local_app_data_path, &["OpenAI", "Codex"]),
-        );
-        push_directory_candidate(
-            directories,
-            build_relative_path(
-                &local_app_data_path,
-                &[
-                    "Packages",
-                    "OpenAI.Codex_2p2nqsd0c76g0",
-                    "LocalCache",
-                    "Local",
-                    "OpenAI",
-                    "Codex",
-                ],
-            ),
-        );
-    }
-
-    if let Some(user_profile_path) =
-        env::var_os(USER_PROFILE_ENVIRONMENT_VARIABLE).map(PathBuf::from)
-    {
-        push_directory_candidate(
-            directories,
-            user_profile_path.join(CODEX_HOME_DIRECTORY_NAME),
+fn push_existing_codex_desktop_candidates(candidate_paths: &mut Vec<PathBuf>, base_path: &Path) {
+    for executable_file_name in CODEX_DESKTOP_EXECUTABLE_FILE_NAMES {
+        push_existing_relative_candidate(
+            candidate_paths,
+            base_path,
+            &["app", executable_file_name],
         );
     }
 }
 
-fn push_windows_apps_candidates(candidate_paths: &mut Vec<PathBuf>) {
-    let Some(program_files_path) =
-        env::var_os(PROGRAM_FILES_ENVIRONMENT_VARIABLE).map(PathBuf::from)
-    else {
-        return;
-    };
-
-    let windows_apps_path = program_files_path.join(WINDOWS_APPS_DIRECTORY_NAME);
-    let Ok(package_entries) = fs::read_dir(windows_apps_path) else {
-        return;
-    };
-
-    for package_entry_result in package_entries {
-        let Ok(package_entry) = package_entry_result else {
-            continue;
-        };
-
-        let package_path = package_entry.path();
-
-        if !is_codex_package_directory(&package_path) {
-            continue;
-        }
-
-        push_relative_candidate(candidate_paths, &package_path, CODEX_DESKTOP_RELATIVE_PATH);
-        push_relative_candidate(candidate_paths, &package_path, CODEX_RESOURCE_RELATIVE_PATH);
+fn push_codex_desktop_candidates(candidate_paths: &mut Vec<PathBuf>, base_path: &Path) {
+    for executable_file_name in CODEX_DESKTOP_EXECUTABLE_FILE_NAMES {
+        push_relative_candidate(candidate_paths, base_path, &["app", executable_file_name]);
     }
 }
 
-fn push_windows_apps_directories(directories: &mut Vec<PathBuf>) {
+fn collect_windows_apps_package_directories() -> Vec<PathBuf> {
     let Some(program_files_path) =
         env::var_os(PROGRAM_FILES_ENVIRONMENT_VARIABLE).map(PathBuf::from)
     else {
-        return;
+        return Vec::new();
     };
 
     let windows_apps_path = program_files_path.join(WINDOWS_APPS_DIRECTORY_NAME);
     let Ok(package_entries) = fs::read_dir(windows_apps_path) else {
-        return;
+        return Vec::new();
     };
 
-    for package_entry_result in package_entries {
-        let Ok(package_entry) = package_entry_result else {
-            continue;
-        };
+    let mut package_directories = package_entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir() && is_codex_package_directory(path))
+        .collect::<Vec<PathBuf>>();
 
-        let package_path = package_entry.path();
-        if !is_codex_package_directory(&package_path) {
-            continue;
-        }
+    package_directories
+        .sort_by(|left, right| compare_codex_package_directories(left.as_path(), right.as_path()));
+    package_directories
+}
 
-        push_directory_candidate(directories, package_path);
+fn compare_codex_package_directories(left: &Path, right: &Path) -> Ordering {
+    match (codex_package_version(left), codex_package_version(right)) {
+        (Some(left_version), Some(right_version)) => right_version
+            .cmp(&left_version)
+            .then_with(|| right.cmp(left)),
+        (Some(_), None) => Ordering::Less,
+        (None, Some(_)) => Ordering::Greater,
+        (None, None) => right.cmp(left),
     }
+}
+
+fn codex_package_version(path: &Path) -> Option<Vec<u64>> {
+    let directory_name = path.file_name()?.to_str()?;
+    let package_identity = directory_name
+        .strip_prefix(CODEX_PACKAGE_DIRECTORY_PREFIX)?
+        .strip_suffix(CODEX_PACKAGE_DIRECTORY_SUFFIX)?;
+    let version = package_identity.split('_').next()?;
+    let version_parts = version
+        .split('.')
+        .map(str::parse::<u64>)
+        .collect::<Result<Vec<u64>, _>>()
+        .ok()?;
+
+    (!version_parts.is_empty()).then_some(version_parts)
 }
 
 fn is_codex_package_directory(path: &Path) -> bool {
-    let Some(directory_name) = path.file_name().and_then(|name| name.to_str()) else {
-        return false;
-    };
-
-    directory_name.starts_with(CODEX_PACKAGE_DIRECTORY_PREFIX)
-        && directory_name.ends_with(CODEX_PACKAGE_DIRECTORY_SUFFIX)
+    codex_package_version(path).is_some()
 }
 
-fn collect_executables_in_directory(directory: &Path, executable_paths: &mut Vec<PathBuf>) {
-    let Ok(entries) = fs::read_dir(directory) else {
+fn collect_runtime_bin_executables(
+    bin_directory: &Path,
+    scanned_directories: &mut Vec<PathBuf>,
+    executable_paths: &mut Vec<PathBuf>,
+) {
+    if !bin_directory.is_dir() {
+        return;
+    }
+
+    push_directory_candidate(scanned_directories, bin_directory.to_path_buf());
+    push_existing_runtime_executable(bin_directory, executable_paths);
+
+    let Ok(entries) = fs::read_dir(bin_directory) else {
         return;
     };
 
-    for entry_result in entries {
-        let Ok(entry) = entry_result else {
-            continue;
-        };
+    for nested_directory in entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir())
+    {
+        push_existing_runtime_executable(&nested_directory, executable_paths);
+    }
+}
 
-        let path = entry.path();
-        if path.is_dir() {
-            collect_executables_in_directory(&path, executable_paths);
-        } else if path.is_file() && is_windows_executable(&path) {
-            push_candidate(executable_paths, path);
+fn push_existing_runtime_executable(directory: &Path, executable_paths: &mut Vec<PathBuf>) {
+    let candidate_path = directory.join(CODEX_EXECUTABLE_FILE_NAME);
+    if candidate_path.is_file() {
+        push_candidate(executable_paths, candidate_path);
+    }
+}
+
+fn push_path_codex_executables(executable_paths: &mut Vec<PathBuf>) {
+    let Some(path_value) = env::var_os(PATH_ENVIRONMENT_VARIABLE) else {
+        return;
+    };
+
+    for directory in env::split_paths(&path_value) {
+        let candidate_path = directory.join(CODEX_EXECUTABLE_FILE_NAME);
+        if candidate_path.is_file() {
+            push_candidate(executable_paths, candidate_path);
         }
     }
 }
 
-fn is_windows_executable(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| extension.eq_ignore_ascii_case("exe"))
+fn push_existing_relative_candidate(
+    candidate_paths: &mut Vec<PathBuf>,
+    base_path: &Path,
+    relative_parts: &[&str],
+) {
+    let candidate_path = build_relative_path(base_path, relative_parts);
+    if candidate_path.is_file() {
+        push_candidate(candidate_paths, candidate_path);
+    }
 }
 
 fn push_relative_candidate(
@@ -275,8 +281,10 @@ fn push_relative_candidate(
     base_path: &Path,
     relative_parts: &[&str],
 ) {
-    let path = build_relative_path(base_path, relative_parts);
-    push_candidate(candidate_paths, path);
+    push_candidate(
+        candidate_paths,
+        build_relative_path(base_path, relative_parts),
+    );
 }
 
 fn build_relative_path(base_path: &Path, relative_parts: &[&str]) -> PathBuf {
@@ -289,20 +297,71 @@ fn build_relative_path(base_path: &Path, relative_parts: &[&str]) -> PathBuf {
 }
 
 fn push_directory_candidate(candidate_paths: &mut Vec<PathBuf>, path: PathBuf) {
-    if !path.is_dir() {
-        return;
+    if path.is_dir() {
+        push_candidate(candidate_paths, path);
     }
-
-    push_candidate(candidate_paths, path);
 }
 
 fn push_candidate(candidate_paths: &mut Vec<PathBuf>, path: PathBuf) {
     if candidate_paths
         .iter()
-        .any(|candidate_path| candidate_path == &path)
+        .any(|candidate_path| paths_match(candidate_path, &path))
     {
         return;
     }
 
     candidate_paths.push(path);
+}
+
+fn paths_match(left: &Path, right: &Path) -> bool {
+    left.to_string_lossy()
+        .eq_ignore_ascii_case(&right.to_string_lossy())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        codex_package_version, compare_codex_package_directories,
+        is_codex_app_server_executable_path, is_codex_desktop_executable_path,
+    };
+    use std::cmp::Ordering;
+    use std::path::{Path, PathBuf};
+
+    #[test]
+    fn package_versions_are_sorted_numerically_in_descending_order() {
+        let older = PathBuf::from("OpenAI.Codex_26.99.0.0_x64__2p2nqsd0c76g0");
+        let newer = PathBuf::from("OpenAI.Codex_26.100.0.0_x64__2p2nqsd0c76g0");
+
+        assert_eq!(
+            compare_codex_package_directories(&newer, &older),
+            Ordering::Less
+        );
+        assert_eq!(
+            codex_package_version(Path::new("OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0")),
+            Some(vec![26, 527, 7698, 0])
+        );
+    }
+
+    #[test]
+    fn app_server_detection_accepts_packaged_and_hashed_runtime_paths() {
+        assert!(is_codex_app_server_executable_path(
+            r"C:\Program Files\WindowsApps\OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0\app\resources\codex.exe"
+        ));
+        assert!(is_codex_app_server_executable_path(
+            r"C:\Users\Example\AppData\Local\OpenAI\Codex\bin\716dda49c14d31a0\codex.exe"
+        ));
+    }
+
+    #[test]
+    fn desktop_detection_accepts_current_and_legacy_packaged_executables() {
+        assert!(is_codex_desktop_executable_path(
+            r"C:\Program Files\WindowsApps\OpenAI.Codex_26.707.3748.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe"
+        ));
+        assert!(is_codex_desktop_executable_path(
+            r"C:\Program Files\WindowsApps\OpenAI.Codex_26.527.7698.0_x64__2p2nqsd0c76g0\app\Codex.exe"
+        ));
+        assert!(!is_codex_desktop_executable_path(
+            r"C:\Program Files\ChatGPT\ChatGPT.exe"
+        ));
+    }
 }

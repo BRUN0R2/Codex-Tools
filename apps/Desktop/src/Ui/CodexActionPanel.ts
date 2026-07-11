@@ -22,6 +22,15 @@ export function createCodexActionPanel({
   const panel = document.createElement("section");
   panel.className = "CodexActionPanel";
 
+  const status = document.createElement("div");
+  status.className = "CodexActionStatus";
+  status.append(createRuntimeStatusElement(runtimeStatus));
+
+  const actionFeedback = createActionFeedbackElement(actionStatus);
+  if (actionFeedback !== null) {
+    status.append(actionFeedback);
+  }
+
   const actions = document.createElement("div");
   actions.className = "CodexActionButtons";
 
@@ -53,7 +62,7 @@ export function createCodexActionPanel({
   openCodexButton.addEventListener("click", onOpenCodex);
 
   actions.append(refreshCodexButton, registerAdminButton, openCodexButton);
-  panel.append(createRuntimeStatusElement(runtimeStatus), actions);
+  panel.append(status, actions);
 
   return panel;
 }
@@ -81,6 +90,29 @@ function createRuntimeStatusElement(runtimeStatus: RuntimeStatus): HTMLParagraph
   const element = document.createElement("p");
   element.className = `RuntimeStatus RuntimeStatus--${runtimeStatus}`;
   element.textContent = `Estatus: ${formatRuntimeStatus(runtimeStatus)}`;
+  return element;
+}
+
+function createActionFeedbackElement(actionStatus: ActionStatus): HTMLParagraphElement | null {
+  if (actionStatus.state === "Idle") {
+    return null;
+  }
+
+  const element = document.createElement("p");
+  element.className = `ActionFeedback ActionFeedback--${actionStatus.state}`;
+
+  switch (actionStatus.state) {
+    case "Running":
+      element.textContent = `${actionStatus.label}...`;
+      break;
+    case "Succeeded":
+      element.textContent = actionStatus.message;
+      break;
+    case "Failed":
+      element.textContent = `Erro: ${actionStatus.message}`;
+      break;
+  }
+
   return element;
 }
 

@@ -9,11 +9,16 @@ import {
   type CodexElevationRegistrationResponse,
 } from "../Domain/CodexElevationRegistration";
 import {
+  parseCodexCleanupResponse,
+  type CodexCleanupReport,
+} from "../Domain/CodexCleanup";
+import {
   parseCodexStatusResponse,
   type CodexStatus,
   type CodexStatusResponse,
 } from "../Domain/CodexInstallation";
 
+const CLEAN_CODEX_WORKSPACE_COMMAND_NAME = "clean_codex_workspace";
 const GET_CODEX_STATUS_COMMAND_NAME = "get_codex_status";
 const OPEN_CODEX_COMMAND_NAME = "open_codex";
 const REGISTER_CODEX_RUN_AS_ADMINISTRATOR_COMMAND_NAME =
@@ -37,6 +42,30 @@ export async function getCodexStatus(): Promise<CommandResult<CodexStatus>> {
       error: {
         code: "InvalidResponse",
         message: error instanceof Error ? error.message : "Invalid Codex status response.",
+      },
+    };
+  }
+}
+
+export async function cleanCodexWorkspace(): Promise<CommandResult<CodexCleanupReport>> {
+  const result = await invokeCommand<CodexCleanupReport>(CLEAN_CODEX_WORKSPACE_COMMAND_NAME);
+
+  if (!result.ok) {
+    return result;
+  }
+
+  try {
+    return {
+      ok: true,
+      value: parseCodexCleanupResponse(result.value),
+    };
+  } catch (error: unknown) {
+    return {
+      ok: false,
+      error: {
+        code: "InvalidResponse",
+        message:
+          error instanceof Error ? error.message : "Invalid Codex cleanup response.",
       },
     };
   }

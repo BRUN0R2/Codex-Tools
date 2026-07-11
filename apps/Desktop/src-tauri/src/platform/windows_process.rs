@@ -1,4 +1,5 @@
 use std::mem::size_of;
+use std::path::PathBuf;
 
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
@@ -8,17 +9,20 @@ use windows::Win32::System::Diagnostics::ToolHelp::{
 use windows::Win32::System::Threading::{
     ABOVE_NORMAL_PRIORITY_CLASS, BELOW_NORMAL_PRIORITY_CLASS, GetCurrentProcess, GetPriorityClass,
     HIGH_PRIORITY_CLASS, IDLE_PRIORITY_CLASS, NORMAL_PRIORITY_CLASS, OpenProcess, OpenProcessToken,
-    PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION, REALTIME_PRIORITY_CLASS,
-    SetPriorityClass,
+    PROCESS_NAME_WIN32, PROCESS_QUERY_LIMITED_INFORMATION, PROCESS_SET_INFORMATION,
+    QueryFullProcessImageNameW, REALTIME_PRIORITY_CLASS, SetPriorityClass,
 };
-use windows::core::Error;
+use windows::core::{Error, PWSTR};
 
+use crate::platform::windows_codex::is_codex_desktop_executable_path;
 use crate::platform::windows_handle::OwnedWindowsHandle;
 
 const CODEX_DESKTOP_PROCESS_NAME: &str = "Codex.exe";
+const CURRENT_CODEX_DESKTOP_PROCESS_NAME: &str = "ChatGPT.exe";
 const CODEX_PROCESS_NAME: &str = "codex.exe";
+const PROCESS_PATH_BUFFER_LENGTH: usize = 32768;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum WindowsProcessPriorityState {
     Idle,
     BelowNormal,
@@ -29,7 +33,7 @@ pub enum WindowsProcessPriorityState {
     Unknown,
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, PartialEq, Eq)]
 pub enum WindowsProcessElevationState {
     Elevated,
     NotElevated,
@@ -39,6 +43,7 @@ pub enum WindowsProcessElevationState {
 pub struct CodexProcessInspection {
     pub process_id: u32,
     pub process_name: String,
+    pub executable_path: Option<String>,
     pub priority: WindowsProcessPriorityState,
     pub elevation: WindowsProcessElevationState,
 }
@@ -50,19 +55,24 @@ struct CodexProcessEntry {
 
 pub struct PriorityApplication {
     pub updated_process_ids: Vec<u32>,
+    pub failed_process_ids: Vec<u32>,
 }
 
 pub fn apply_high_priority_to_running_codex() -> Result<PriorityApplication, Error> {
     let codex_processes = collect_codex_process_entries()?;
     let mut updated_process_ids = Vec::with_capacity(codex_processes.len());
+    let mut failed_process_ids = Vec::new();
 
     for codex_process in codex_processes {
-        apply_high_priority_to_process(codex_process.process_id)?;
-        updated_process_ids.push(codex_process.process_id);
+        match apply_high_priority_to_process(codex_process.process_id) {
+            Ok(()) => updated_process_ids.push(codex_process.process_id),
+            Err(_) => failed_process_ids.push(codex_process.process_id),
+        }
     }
 
     Ok(PriorityApplication {
         updated_process_ids,
+        failed_process_ids,
     })
 }
 
@@ -89,7 +99,7 @@ fn collect_codex_process_entries() -> Result<Vec<CodexProcessEntry>, Error> {
     while has_process {
         let process_name = process_name_from_entry(&process_entry);
 
-        if is_codex_process_name(&process_name) {
+        if is_codex_process(process_entry.th32ProcessID, &process_name) {
             codex_processes.push(CodexProcessEntry {
                 process_id: process_entry.th32ProcessID,
                 process_name,
@@ -108,6 +118,9 @@ fn inspect_codex_process(codex_process: CodexProcessEntry) -> CodexProcessInspec
     CodexProcessInspection {
         process_id: codex_process.process_id,
         process_name: codex_process.process_name,
+        executable_path: process_handle
+            .as_ref()
+            .and_then(|handle| process_executable_path_from_handle(handle.raw())),
         priority: process_handle
             .as_ref()
             .map_or(WindowsProcessPriorityState::Unknown, |handle| {
@@ -119,6 +132,31 @@ fn inspect_codex_process(codex_process: CodexProcessEntry) -> CodexProcessInspec
                 process_elevation_from_handle(handle.raw())
             }),
     }
+}
+
+fn process_executable_path_from_handle(process_handle: HANDLE) -> Option<String> {
+    let mut buffer = vec![0u16; PROCESS_PATH_BUFFER_LENGTH];
+    let mut length = buffer.len() as u32;
+
+    unsafe {
+        QueryFullProcessImageNameW(
+            process_handle,
+            PROCESS_NAME_WIN32,
+            PWSTR::from_raw(buffer.as_mut_ptr()),
+            &mut length,
+        )
+        .ok()?;
+    }
+
+    if length == 0 {
+        return None;
+    }
+
+    Some(
+        PathBuf::from(String::from_utf16_lossy(&buffer[..length as usize]))
+            .to_string_lossy()
+            .into_owned(),
+    )
 }
 
 fn apply_high_priority_to_process(process_id: u32) -> Result<(), Error> {
@@ -206,6 +244,18 @@ fn process_is_elevated(process_handle: HANDLE) -> Result<bool, Error> {
 fn is_codex_process_name(process_name: &str) -> bool {
     process_name.eq_ignore_ascii_case(CODEX_DESKTOP_PROCESS_NAME)
         || process_name.eq_ignore_ascii_case(CODEX_PROCESS_NAME)
+}
+
+fn is_codex_process(process_id: u32, process_name: &str) -> bool {
+    if is_codex_process_name(process_name) {
+        return true;
+    }
+
+    process_name.eq_ignore_ascii_case(CURRENT_CODEX_DESKTOP_PROCESS_NAME)
+        && open_process_for_query(process_id)
+            .ok()
+            .and_then(|handle| process_executable_path_from_handle(handle.raw()))
+            .is_some_and(|path| is_codex_desktop_executable_path(&path))
 }
 
 fn process_name_from_entry(process_entry: &PROCESSENTRY32W) -> String {

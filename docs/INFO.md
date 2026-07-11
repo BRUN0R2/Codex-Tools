@@ -4,14 +4,14 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 
 ## Stack confirmada
 
-- Tauri `2.11.2`.
-- Tauri API `2.11.0`.
-- Tauri Build `2.6.2`.
-- Vite `8.0.14`.
-- TypeScript `6.0.3`.
-- Rust `1.95.0`.
-- Node.js `26.1.0`.
-- npm `11.13.0`.
+- Tauri `2.11.5`.
+- Tauri API `2.11.1`.
+- Tauri Build `2.6.3`.
+- Vite `8.1.4`.
+- TypeScript `7.0.2`.
+- Rust `1.96.0`.
+- Node.js `26.3.0`.
+- npm `11.17.0`.
 - CMake `4.3.2`.
 - MSVC `14.51`.
 
@@ -25,7 +25,10 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Manter `docs/RULES.md` alinhado a Rust, TypeScript, Tauri e APIs Windows isoladas.
 - O fluxo principal usa prioridade alta fixa para todos os processos Codex.
 - Prioridade em tempo real permanece fora do produto.
-- Detectar Codex por caminhos conhecidos em `LOCALAPPDATA` e pelo `PATH`, retornando os caminhos verificados.
+- Detectar o desktop Codex pelos pacotes versionados em `Program Files\WindowsApps`,
+  incluindo o executavel atual `ChatGPT.exe` e o nome legado `Codex.exe`.
+- Detectar binarios primarios Codex em pacotes versionados, runtimes hashados em
+  `LOCALAPPDATA` e pelo `PATH`.
 - Codex Tools deve pedir elevacao de administrador antes da janela abrir.
 - A release embute manifest Windows com `requireAdministrator`.
 - O token elevado ativa `SeDebugPrivilege` e `SeIncreaseBasePriorityPrivilege` para gerenciar processos Codex.
@@ -39,9 +42,24 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Manter automacao generica fora da interface simplificada.
 - Expor apenas uma acao de Registry: salvar `~ RUNASADMIN` em
   `HKCU\Software\Microsoft\Windows NT\CurrentVersion\AppCompatFlags\Layers`
-  para todos os `.exe` encontrados nas pastas Codex conhecidas, incluindo a
-  pasta versionada dinamica `OpenAI.Codex_*__2p2nqsd0c76g0` e
-  `%USERPROFILE%\.codex`.
+  somente para os binarios primarios `ChatGPT.exe`, `Codex.exe` e `codex.exe` encontrados
+  nas pastas Codex conhecidas.
+- Nao registrar ferramentas auxiliares como `node.exe`, `rg.exe`, executaveis
+  de plugins ou helpers do Chromium como `RUNASADMIN`.
+- Ao reiniciar o desktop elevado, encerrar apenas processos pertencentes ao
+  pacote desktop selecionado para preservar sessoes CLI independentes.
+- Reconhecer app-servers executados a partir do pacote desktop e dos runtimes
+  hashados em `LOCALAPPDATA`.
+- Manter compatibilidade com a pasta versionada dinamica
+  `OpenAI.Codex_*__2p2nqsd0c76g0`.
+- Usar `rusqlite` com SQLite embutido para limpar o banco local do Codex sem
+  depender de `sqlite3.exe` instalado no Windows.
+- Usar `serde_json` para limpar o estado global do Codex com parser JSON real,
+  evitando manipulacao textual fragil.
+- Bloquear a limpeza geral quando processos Codex estiverem abertos para evitar
+  disputa de escrita no SQLite e no estado local.
+- Preservar credenciais, configuracoes, skills e plugins instalados; limpar
+  conversas, sessoes, anexos, temporarios, cache local e bancos legados.
 
 ## Validacao atual
 

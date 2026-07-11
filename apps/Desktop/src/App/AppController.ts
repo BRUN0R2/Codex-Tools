@@ -1,14 +1,23 @@
 import {
+  cleanCodexWorkspace,
   getCodexStatus,
   openCodex,
   registerCodexRunAsAdministrator,
 } from "../Backend/CodexCommands";
+import type { AppSection } from "../Domain/AppSection";
+import {
+  CODEX_CLEANUP_ACTION_LABEL,
+  type CodexCleanupReport,
+} from "../Domain/CodexCleanup";
+import type { CodexLaunchMethod, CodexLaunchResponse } from "../Domain/CodexLaunch";
 import {
   INITIAL_APP_STATE,
   clearConsoleMessages,
+  setActiveSection,
   setOpeningRuntimeStatus,
   setCheckingCodexStatus,
   setCodexStatus,
+  setCleanupReport,
   setFailedActionStatus,
   setFailedCodexStatus,
   setRunningActionStatus,
@@ -35,6 +44,9 @@ export function mountApp(root: HTMLElement): void {
     root.replaceChildren(
       createShell({
         state,
+        onCleanCodex(): void {
+          void cleanCodex();
+        },
         onCodexRefresh(): void {
           void refreshCodexStatus();
         },
@@ -50,8 +62,16 @@ export function mountApp(root: HTMLElement): void {
         onRegisterRunAsAdministrator(): void {
           void saveRunAsAdministratorMode();
         },
+        onSelectSection(section: AppSection): void {
+          selectSection(section);
+        },
       })
     );
+  }
+
+  function selectSection(section: AppSection): void {
+    state = setActiveSection(state, section);
+    render();
   }
 
   async function refreshCodexStatus(): Promise<void> {
@@ -97,7 +117,7 @@ export function mountApp(root: HTMLElement): void {
     const result = await openCodex();
 
     if (result.ok) {
-      state = setSucceededActionStatus(state, "Codex iniciado. Ajustando prioridade em segundo plano.");
+      state = setSucceededActionStatus(state, createCodexLaunchSuccessMessage(result.value));
       render();
       void monitorCodexOpening(monitorVersion);
       return;
@@ -123,6 +143,25 @@ export function mountApp(root: HTMLElement): void {
     state = setSucceededActionStatus(
       state,
       `Modo administrador salvo para ${registeredCount} executavel(is) do Codex.`
+    );
+    render();
+    await refreshCodexStatus();
+  }
+
+  async function cleanCodex(): Promise<void> {
+    state = setRunningActionStatus(state, CODEX_CLEANUP_ACTION_LABEL);
+    render();
+
+    const result = await cleanCodexWorkspace();
+    if (!result.ok) {
+      state = setFailedActionStatus(state, result.error.message);
+      render();
+      return;
+    }
+
+    state = setCleanupReport(
+      setSucceededActionStatus(state, createCleanupSuccessMessage(result.value)),
+      result.value
     );
     render();
     await refreshCodexStatus();
@@ -170,6 +209,44 @@ export function mountApp(root: HTMLElement): void {
     return new Promise((resolve) => {
       window.setTimeout(resolve, milliseconds);
     });
+  }
+
+  function createCodexLaunchSuccessMessage(response: CodexLaunchResponse): string {
+    const method = formatCodexLaunchMethod(response.launchMethod);
+    const elevation = response.appServerElevationObserved
+      ? "app-server elevado confirmado"
+      : "app-server elevado ainda nao confirmado";
+    const fallback = response.fallbackUsed ? " com fallback" : "";
+    const diagnostic =
+      response.diagnosticMessage === null ? "" : ` Detalhe: ${response.diagnosticMessage}`;
+
+    return `Codex iniciado via ${method}${fallback}; ${elevation}. Ajustando prioridade.${diagnostic}`;
+  }
+
+  function createCleanupSuccessMessage(report: CodexCleanupReport): string {
+    return `Limpeza concluida: ${report.removedThreadCount} conversa(s), ${report.removedFileCount} arquivo(s), ${formatBytes(report.freedBytes)} liberados.`;
+  }
+
+  function formatBytes(bytes: number): string {
+    const units = ["B", "KB", "MB", "GB"] as const;
+    let value = bytes;
+    let unitIndex = 0;
+
+    while (value >= 1024 && unitIndex < units.length - 1) {
+      value /= 1024;
+      unitIndex += 1;
+    }
+
+    return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+  }
+
+  function formatCodexLaunchMethod(method: CodexLaunchMethod): string {
+    switch (method) {
+      case "ElevatedScheduledTask":
+        return "tarefa elevada";
+      case "ShellExecuteRunAs":
+        return "runas";
+    }
   }
 
   render();

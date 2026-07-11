@@ -30,6 +30,7 @@ export function createCodexConsolePanel({
 
   const output = document.createElement("pre");
   output.className = "CodexConsoleOutput";
+  output.setAttribute("aria-live", "polite");
   output.textContent = messages.length === 0 ? "Console vazio." : messages.join("\n");
 
   header.append(title, actions);

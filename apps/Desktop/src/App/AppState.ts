@@ -5,6 +5,8 @@ import {
   createSucceededActionStatus,
   type ActionStatus,
 } from "../Domain/ActionStatus";
+import { INITIAL_APP_SECTION, type AppSection } from "../Domain/AppSection";
+import type { CodexCleanupReport } from "../Domain/CodexCleanup";
 import {
   CHECKING_CODEX_STATUS,
   UNCHECKED_CODEX_STATUS,
@@ -25,6 +27,8 @@ import {
 
 export type AppState = Readonly<{
   actionStatus: ActionStatus;
+  activeSection: AppSection;
+  cleanupReport: CodexCleanupReport | null;
   codexStatus: CodexStatus;
   consoleMessages: readonly ConsoleMessage[];
   runtimeStatus: RuntimeStatus;
@@ -32,6 +36,8 @@ export type AppState = Readonly<{
 
 export const INITIAL_APP_STATE: AppState = {
   actionStatus: IDLE_ACTION_STATUS,
+  activeSection: INITIAL_APP_SECTION,
+  cleanupReport: null,
   codexStatus: UNCHECKED_CODEX_STATUS,
   consoleMessages: createCodexConsoleMessages(UNCHECKED_CODEX_STATUS),
   runtimeStatus: WAITING_RUNTIME_STATUS,
@@ -76,6 +82,23 @@ export function setFailedActionStatus(state: AppState, message: string): AppStat
   return {
     ...state,
     actionStatus: createFailedActionStatus(message),
+  };
+}
+
+export function setActiveSection(state: AppState, activeSection: AppSection): AppState {
+  return {
+    ...state,
+    activeSection,
+  };
+}
+
+export function setCleanupReport(
+  state: AppState,
+  cleanupReport: CodexCleanupReport
+): AppState {
+  return {
+    ...state,
+    cleanupReport,
   };
 }
 

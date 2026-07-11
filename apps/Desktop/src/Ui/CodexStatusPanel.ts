@@ -6,13 +6,17 @@ export type CodexStatusPanelProps = Readonly<{
 
 export function createCodexStatusPanel({ status }: CodexStatusPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
-  panel.className = "CodexStatusPanel";
+  panel.className = `CodexStatusPanel CodexStatusPanel--${status.state}`;
+
+  const indicator = document.createElement("span");
+  indicator.className = "CodexStatusIndicator";
+  indicator.setAttribute("aria-hidden", "true");
 
   const statusText = document.createElement("p");
   statusText.className = "CodexStatusText";
   statusText.textContent = createCodexStatusText(status);
 
-  panel.append(statusText);
+  panel.append(indicator, statusText);
 
   return panel;
 }

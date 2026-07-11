@@ -1,6 +1,7 @@
 :root {
-  color: #171a1f;
-  background: #f5f7fa;
+  color: #172033;
+  background: #f2f5f9;
+  color-scheme: light;
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
@@ -15,56 +16,198 @@ body {
   margin: 0;
   min-width: 360px;
   min-height: 520px;
+  background: radial-gradient(circle at 90% 0%, rgb(79 70 229 / 9%), transparent 34rem), #f2f5f9;
 }
 
 button {
   font: inherit;
 }
 
+button:focus-visible {
+  outline: 3px solid rgb(79 70 229 / 24%);
+  outline-offset: 2px;
+}
+
 .AppShell {
   box-sizing: border-box;
   display: grid;
-  gap: 24px;
+  gap: 22px;
   grid-template-rows: auto 1fr;
   min-height: 100vh;
-  padding: 28px;
+  margin: 0 auto;
+  max-width: 1280px;
+  padding: 28px 32px 32px;
+  width: 100%;
 }
 
 .AppHeader {
-  align-items: end;
+  align-items: center;
   display: flex;
   justify-content: space-between;
 }
 
-.AppTitle {
-  font-size: 24px;
+.AppIdentity {
+  align-items: center;
+  display: flex;
+  gap: 12px;
+}
+
+.AppBrandMark {
+  align-items: center;
+  background: linear-gradient(145deg, #222b40, #111827);
+  border-radius: 12px;
+  box-shadow: 0 8px 20px rgb(15 23 42 / 18%);
+  color: #fff;
+  display: flex;
+  font-size: 15px;
+  font-weight: 800;
+  height: 42px;
+  justify-content: center;
+  width: 42px;
+}
+
+.AppEyebrow {
+  color: #687386;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  margin: 0 0 1px;
+  text-transform: uppercase;
+}
+
+.AppWorkspace {
+  display: grid;
+  gap: 18px;
+  grid-template-columns: 190px minmax(0, 1fr);
+  min-height: 496px;
+}
+
+.AppNavigation {
+  background: #172033;
+  border: 1px solid #263149;
+  border-radius: 16px;
+  box-shadow: 0 14px 34px rgb(15 23 42 / 12%);
+  align-content: start;
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+}
+
+.AppNavigationButton {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  color: #aeb8ca;
+  cursor: pointer;
+  font-size: 13px;
   font-weight: 700;
+  display: grid;
+  gap: 1px;
+  min-height: 54px;
+  padding: 8px 11px;
+  text-align: left;
+}
+
+.AppNavigationButton strong {
+  color: inherit;
+  font-size: 13px;
+}
+
+.AppNavigationButton span {
+  color: #7f8ba0;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.AppNavigationButton:hover {
+  background: rgb(255 255 255 / 6%);
+  color: #fff;
+}
+
+.AppNavigationButton.IsActive {
+  background: #ffffff;
+  border-color: #fff;
+  box-shadow: 0 5px 14px rgb(0 0 0 / 18%);
+  color: #172033;
+}
+
+.AppNavigationButton.IsActive span {
+  color: #69758a;
+}
+
+.AppTitle {
+  font-size: 23px;
+  font-weight: 750;
+  letter-spacing: -0.025em;
   margin: 0;
 }
 
 .ControlSurface {
   background: #ffffff;
-  border: 1px solid #d8dee7;
-  border-radius: 8px;
+  border: 1px solid #dce3ed;
+  border-radius: 16px;
+  box-shadow: 0 14px 38px rgb(31 41 55 / 7%);
   box-sizing: border-box;
   display: grid;
   gap: 24px;
+  grid-auto-rows: max-content;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   min-height: 496px;
-  padding: 24px;
+  padding: 26px;
 }
 
 .SectionTitle {
-  font-size: 15px;
-  font-weight: 700;
+  font-size: 18px;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  margin: 0;
+}
+
+.SectionHeading {
+  display: grid;
+  gap: 2px;
+}
+
+.SectionDescription {
+  color: #69758a;
+  font-size: 12px;
   margin: 0;
 }
 
 .CodexStatusPanel {
+  align-items: center;
   border: 1px solid #d8dee7;
-  border-radius: 8px;
+  border-radius: 11px;
   box-sizing: border-box;
-  padding: 14px;
+  display: flex;
+  gap: 10px;
+  padding: 13px 14px;
+}
+
+.CodexStatusIndicator {
+  background: #94a3b8;
+  border: 3px solid #e2e8f0;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  height: 7px;
+  width: 7px;
+}
+
+.CodexStatusPanel--Found .CodexStatusIndicator {
+  background: #16a34a;
+  border-color: #dcfce7;
+}
+
+.CodexStatusPanel--Checking .CodexStatusIndicator {
+  animation: StatusPulse 1.2s ease-in-out infinite;
+  background: #d97706;
+  border-color: #fef3c7;
+}
+
+.CodexStatusPanel--Failed .CodexStatusIndicator,
+.CodexStatusPanel--NotFound .CodexStatusIndicator {
+  background: #dc2626;
+  border-color: #fee2e2;
 }
 
 .CodexStatusText {
@@ -76,9 +219,10 @@ button {
 
 .CodexConsolePanel {
   align-self: stretch;
-  background: #111418;
-  border: 1px solid #2c333d;
-  border-radius: 8px;
+  background: linear-gradient(150deg, #151d2c, #0f1520);
+  border: 1px solid #2a3549;
+  border-radius: 13px;
+  box-shadow: inset 0 1px rgb(255 255 255 / 4%);
   box-sizing: border-box;
   display: grid;
   gap: 12px;
@@ -133,6 +277,100 @@ button {
   grid-template-columns: auto auto auto;
 }
 
+.CodexActionStatus {
+  display: grid;
+  gap: 4px;
+}
+
+.CodexCleanupPanel {
+  align-content: start;
+  display: grid;
+  gap: 20px;
+}
+
+.CodexCleanupHeader {
+  align-items: center;
+  display: flex;
+  gap: 16px;
+  justify-content: space-between;
+}
+
+.CleanupSummary {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.CleanupSummaryItem {
+  border: 1px solid #d8dee7;
+  background: #f8fafc;
+  border-radius: 11px;
+  box-sizing: border-box;
+  display: grid;
+  gap: 2px;
+  min-height: 76px;
+  padding: 12px;
+}
+
+.CleanupSummaryItem strong {
+  color: #171a1f;
+  font-size: 18px;
+  overflow-wrap: anywhere;
+}
+
+.CleanupSummaryItem span {
+  color: #52606f;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.CleanupTargets {
+  border: 1px solid #d8dee7;
+  border-radius: 11px;
+  display: grid;
+  overflow: hidden;
+}
+
+.CleanupTargetRow {
+  align-items: center;
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(120px, 0.5fr) minmax(0, 1fr);
+  min-height: 44px;
+  padding: 0 14px;
+}
+
+.CleanupTargetRow + .CleanupTargetRow {
+  border-top: 1px solid #e4e9f0;
+}
+
+.CleanupTargetName {
+  color: #171a1f;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.CleanupTargetResult {
+  color: #52606f;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.CleanupEmptyState,
+.CleanupWarnings p {
+  color: #52606f;
+  font-size: 13px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.CleanupWarnings {
+  border-left: 3px solid #b7791f;
+  display: grid;
+  gap: 6px;
+  padding-left: 12px;
+}
+
 .RuntimeStatus {
   font-size: 13px;
   font-weight: 700;
@@ -152,10 +390,23 @@ button {
   color: #16803a;
 }
 
+.ActionFeedback {
+  color: #52606f;
+  font-size: 12px;
+  margin: 0;
+  max-width: 560px;
+  overflow-wrap: anywhere;
+}
+
+.ActionFeedback--Failed {
+  color: #b42318;
+}
+
 .PrimaryButton {
-  background: #171a1f;
-  border: 1px solid #171a1f;
-  border-radius: 8px;
+  background: #4f46e5;
+  border: 1px solid #4f46e5;
+  border-radius: 10px;
+  box-shadow: 0 5px 12px rgb(79 70 229 / 22%);
   color: #ffffff;
   cursor: pointer;
   font-size: 13px;
@@ -168,7 +419,7 @@ button {
 .SecondaryButton {
   background: #ffffff;
   border: 1px solid #b9c3cf;
-  border-radius: 8px;
+  border-radius: 10px;
   color: #171a1f;
   cursor: pointer;
   font-size: 13px;
@@ -176,6 +427,44 @@ button {
   min-height: 38px;
   min-width: 96px;
   padding: 0 14px;
+}
+
+.DangerButton {
+  background: #8f1d1d;
+  border: 1px solid #8f1d1d;
+  border-radius: 10px;
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 700;
+  min-height: 38px;
+  min-width: 128px;
+  padding: 0 14px;
+}
+
+.PrimaryButton,
+.SecondaryButton,
+.DangerButton,
+.AppNavigationButton {
+  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease,
+    color 140ms ease, transform 140ms ease;
+}
+
+.PrimaryButton:not(:disabled):hover,
+.DangerButton:not(:disabled):hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+}
+
+.SecondaryButton:not(:disabled):hover {
+  background: #f8fafc;
+  border-color: #8c99aa;
+}
+
+@keyframes StatusPulse {
+  50% {
+    opacity: 0.45;
+  }
 }
 
 .PrimaryButton:disabled {
@@ -192,14 +481,47 @@ button {
   cursor: not-allowed;
 }
 
+.DangerButton:disabled {
+  background: #f4e7e7;
+  border-color: #ead0d0;
+  color: #9c6f6f;
+  cursor: wait;
+}
+
 @media (max-width: 760px) {
+  .AppShell {
+    padding: 22px 18px;
+  }
   .AppHeader {
     align-items: start;
     flex-direction: column;
   }
 
+  .AppWorkspace {
+    grid-template-columns: 1fr;
+  }
+
+  .AppNavigation {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .AppNavigationButton {
+    text-align: center;
+  }
+
   .ControlSurface {
     min-height: 560px;
+  }
+
+  .CleanupSummary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .CleanupTargetRow {
+    align-items: start;
+    gap: 4px;
+    grid-template-columns: 1fr;
+    padding: 10px 14px;
   }
 
   .CodexActionPanel {
@@ -218,6 +540,7 @@ button {
 
   .CodexActionPanel .PrimaryButton,
   .CodexActionPanel .SecondaryButton,
+  .CodexCleanupPanel .DangerButton,
   .CodexConsolePanel .SecondaryButton {
     justify-self: stretch;
   }

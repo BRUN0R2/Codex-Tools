@@ -162,6 +162,7 @@ impl PriorityStabilizationFailure {
 fn apply_high_priority_with_retry()
 -> Result<PriorityStabilizationResult, PriorityStabilizationFailure> {
     let mut updated_process_ids = BTreeSet::new();
+    let mut failed_process_ids = BTreeSet::new();
     let mut stable_high_priority_attempts = 0usize;
 
     for attempt_index in 0..PRIORITY_APPLICATION_MAX_ATTEMPTS {
@@ -174,6 +175,7 @@ fn apply_high_priority_with_retry()
         })?;
 
         updated_process_ids.extend(priority_application.updated_process_ids);
+        failed_process_ids.extend(priority_application.failed_process_ids);
 
         let processes = inspect_running_codex_processes().map_err(|error| {
             PriorityStabilizationFailure::new(
@@ -204,9 +206,24 @@ fn apply_high_priority_with_retry()
         }
     }
 
+    let failed_process_message = if failed_process_ids.is_empty() {
+        String::new()
+    } else {
+        format!(
+            " Priority update failed for PIDs: {}.",
+            failed_process_ids
+                .into_iter()
+                .map(|process_id| process_id.to_string())
+                .collect::<Vec<String>>()
+                .join(", ")
+        )
+    };
+
     Err(PriorityStabilizationFailure::new(
         PRIORITY_APPLICATION_MAX_ATTEMPTS,
-        "Codex high priority did not stabilize within the expected time.",
+        format!(
+            "Codex high priority did not stabilize within the expected time.{failed_process_message}"
+        ),
     ))
 }
 
