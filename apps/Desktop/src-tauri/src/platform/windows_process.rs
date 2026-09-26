@@ -1,6 +1,5 @@
 use std::mem::size_of;
 use std::path::PathBuf;
-
 use windows::Win32::Foundation::HANDLE;
 use windows::Win32::Security::{GetTokenInformation, TOKEN_ELEVATION, TOKEN_QUERY, TokenElevation};
 use windows::Win32::System::Diagnostics::ToolHelp::{
@@ -14,7 +13,9 @@ use windows::Win32::System::Threading::{
 };
 use windows::core::{Error, PWSTR};
 
-use crate::platform::windows_codex::is_codex_desktop_executable_path;
+use crate::platform::windows_codex::{
+    is_codex_app_server_executable_path, is_codex_desktop_executable_path,
+};
 use crate::platform::windows_handle::OwnedWindowsHandle;
 
 const CODEX_DESKTOP_PROCESS_NAME: &str = "Codex.exe";
@@ -33,6 +34,21 @@ pub enum WindowsProcessPriorityState {
     Unknown,
 }
 
+impl std::fmt::Display for WindowsProcessPriorityState {
+    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let label = match self {
+            Self::Idle => "Idle",
+            Self::BelowNormal => "BelowNormal",
+            Self::Normal => "Normal",
+            Self::AboveNormal => "AboveNormal",
+            Self::High => "High",
+            Self::Realtime => "Realtime",
+            Self::Unknown => "Unknown",
+        };
+        formatter.write_str(label)
+    }
+}
+
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum WindowsProcessElevationState {
     Elevated,
@@ -40,8 +56,10 @@ pub enum WindowsProcessElevationState {
     Unavailable,
 }
 
+#[derive(Clone)]
 pub struct CodexProcessInspection {
     pub process_id: u32,
+    pub parent_process_id: u32,
     pub process_name: String,
     pub executable_path: Option<String>,
     pub priority: WindowsProcessPriorityState,
@@ -50,30 +68,29 @@ pub struct CodexProcessInspection {
 
 struct CodexProcessEntry {
     process_id: u32,
+    parent_process_id: u32,
     process_name: String,
 }
 
-pub struct PriorityApplication {
-    pub updated_process_ids: Vec<u32>,
-    pub failed_process_ids: Vec<u32>,
+pub struct PriorityUpdate {
+    pub process_id: u32,
+    pub error: Option<String>,
 }
 
-pub fn apply_high_priority_to_running_codex() -> Result<PriorityApplication, Error> {
+pub fn apply_high_priority_to_running_codex() -> Result<Vec<PriorityUpdate>, Error> {
     let codex_processes = collect_codex_process_entries()?;
-    let mut updated_process_ids = Vec::with_capacity(codex_processes.len());
-    let mut failed_process_ids = Vec::new();
+    let mut updates = Vec::with_capacity(codex_processes.len());
 
     for codex_process in codex_processes {
-        match apply_high_priority_to_process(codex_process.process_id) {
-            Ok(()) => updated_process_ids.push(codex_process.process_id),
-            Err(_) => failed_process_ids.push(codex_process.process_id),
-        }
+        updates.push(PriorityUpdate {
+            process_id: codex_process.process_id,
+            error: apply_high_priority_to_process(codex_process.process_id)
+                .err()
+                .map(|error| error.to_string()),
+        });
     }
 
-    Ok(PriorityApplication {
-        updated_process_ids,
-        failed_process_ids,
-    })
+    Ok(updates)
 }
 
 pub fn inspect_running_codex_processes() -> Result<Vec<CodexProcessInspection>, Error> {
@@ -83,7 +100,54 @@ pub fn inspect_running_codex_processes() -> Result<Vec<CodexProcessInspection>, 
         .collect())
 }
 
+pub fn find_elevated_codex_desktop_process() -> Result<Option<u32>, Error> {
+    let processes = inspect_running_codex_processes()?;
+    Ok(elevated_desktop_process_id(&processes))
+}
+
+fn elevated_desktop_process_id(processes: &[CodexProcessInspection]) -> Option<u32> {
+    for app_server in processes {
+        if !app_server
+            .process_name
+            .eq_ignore_ascii_case(CODEX_PROCESS_NAME)
+            || app_server.elevation != WindowsProcessElevationState::Elevated
+            || !app_server
+                .executable_path
+                .as_deref()
+                .is_some_and(is_codex_app_server_executable_path)
+        {
+            continue;
+        }
+
+        let desktop = processes.iter().find(|process| {
+            process.process_id == app_server.parent_process_id
+                && process.elevation == WindowsProcessElevationState::Elevated
+                && process
+                    .executable_path
+                    .as_deref()
+                    .is_some_and(is_codex_desktop_executable_path)
+        });
+        if let Some(desktop) = desktop {
+            return Some(desktop.process_id);
+        }
+    }
+
+    None
+}
+
 fn collect_codex_process_entries() -> Result<Vec<CodexProcessEntry>, Error> {
+    let mut codex_processes = Vec::new();
+
+    for process in collect_process_snapshot()? {
+        if is_codex_process(process.process_id, &process.process_name) {
+            codex_processes.push(process);
+        }
+    }
+
+    Ok(codex_processes)
+}
+
+fn collect_process_snapshot() -> Result<Vec<CodexProcessEntry>, Error> {
     let snapshot = unsafe { CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0)? };
     let snapshot_handle = OwnedWindowsHandle::new(snapshot).ok_or_else(Error::from_thread)?;
 
@@ -91,25 +155,20 @@ fn collect_codex_process_entries() -> Result<Vec<CodexProcessEntry>, Error> {
         dwSize: size_of::<PROCESSENTRY32W>() as u32,
         ..Default::default()
     };
-    let mut codex_processes = Vec::new();
-
+    let mut processes = Vec::new();
     let mut has_process =
         unsafe { Process32FirstW(snapshot_handle.raw(), &mut process_entry) }.is_ok();
 
     while has_process {
-        let process_name = process_name_from_entry(&process_entry);
-
-        if is_codex_process(process_entry.th32ProcessID, &process_name) {
-            codex_processes.push(CodexProcessEntry {
-                process_id: process_entry.th32ProcessID,
-                process_name,
-            });
-        }
-
+        processes.push(CodexProcessEntry {
+            process_id: process_entry.th32ProcessID,
+            parent_process_id: process_entry.th32ParentProcessID,
+            process_name: process_name_from_entry(&process_entry),
+        });
         has_process = unsafe { Process32NextW(snapshot_handle.raw(), &mut process_entry) }.is_ok();
     }
 
-    Ok(codex_processes)
+    Ok(processes)
 }
 
 fn inspect_codex_process(codex_process: CodexProcessEntry) -> CodexProcessInspection {
@@ -117,6 +176,7 @@ fn inspect_codex_process(codex_process: CodexProcessEntry) -> CodexProcessInspec
 
     CodexProcessInspection {
         process_id: codex_process.process_id,
+        parent_process_id: codex_process.parent_process_id,
         process_name: codex_process.process_name,
         executable_path: process_handle
             .as_ref()
@@ -266,4 +326,63 @@ fn process_name_from_entry(process_entry: &PROCESSENTRY32W) -> String {
         .unwrap_or(process_entry.szExeFile.len());
 
     String::from_utf16_lossy(&process_entry.szExeFile[..length])
+}
+
+#[cfg(test)]
+mod tests {
+    use super::{
+        CodexProcessInspection, WindowsProcessElevationState, WindowsProcessPriorityState,
+        elevated_desktop_process_id,
+    };
+
+    #[test]
+    fn elevated_desktop_requires_an_elevated_app_server_child() {
+        let desktop = process(
+            10,
+            0,
+            "ChatGPT.exe",
+            r"C:\Program Files\WindowsApps\OpenAI.Codex_26.924.2738.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe",
+            WindowsProcessElevationState::Elevated,
+        );
+        let normal_app_server = process(
+            11,
+            10,
+            "codex.exe",
+            r"C:\Users\Example\AppData\Local\OpenAI\Codex\bin\abc\codex.exe",
+            WindowsProcessElevationState::NotElevated,
+        );
+        let elevated_app_server = process(
+            11,
+            10,
+            "codex.exe",
+            r"C:\Users\Example\AppData\Local\OpenAI\Codex\bin\abc\codex.exe",
+            WindowsProcessElevationState::Elevated,
+        );
+
+        assert_eq!(
+            elevated_desktop_process_id(&[desktop.clone(), normal_app_server]),
+            None
+        );
+        assert_eq!(
+            elevated_desktop_process_id(&[desktop, elevated_app_server]),
+            Some(10)
+        );
+    }
+
+    fn process(
+        process_id: u32,
+        parent_process_id: u32,
+        process_name: &str,
+        executable_path: &str,
+        elevation: WindowsProcessElevationState,
+    ) -> CodexProcessInspection {
+        CodexProcessInspection {
+            process_id,
+            parent_process_id,
+            process_name: process_name.to_owned(),
+            executable_path: Some(executable_path.to_owned()),
+            priority: WindowsProcessPriorityState::Normal,
+            elevation,
+        }
+    }
 }

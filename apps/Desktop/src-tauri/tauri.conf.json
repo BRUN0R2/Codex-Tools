@@ -13,9 +13,17 @@
     "withGlobalTauri": false,
     "windows": [
       {
+        "label": "main",
         "title": "Codex Tools",
-        "width": 920,
-        "height": 640
+        "width": 1180,
+        "height": 760,
+        "minWidth": 920,
+        "minHeight": 640,
+        "resizable": true,
+        "center": true,
+        "decorations": false,
+        "backgroundColor": "#f3f6f8",
+        "theme": "Light"
       }
     ],
     "security": {

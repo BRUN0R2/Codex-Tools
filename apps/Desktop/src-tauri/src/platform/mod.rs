@@ -1,7 +1,11 @@
 pub mod codex_cleanup;
+pub mod codex_uninstall;
 pub mod windows_app_compat;
 pub mod windows_codex;
 pub mod windows_handle;
+pub mod windows_package_activation;
+pub mod windows_package_capability;
+pub mod windows_powershell;
 pub mod windows_privilege;
 pub mod windows_process;
 pub mod windows_scheduled_task;

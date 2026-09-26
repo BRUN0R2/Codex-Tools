@@ -41,6 +41,8 @@ export type CodexStatus =
       checkedPaths: readonly string[];
       processes: readonly CodexProcess[];
       priorityStabilization: PriorityStabilization;
+      packageAllowsElevation: boolean | null;
+      elevationDiagnostic: string | null;
     }>
   | Readonly<{
       state: "NotFound";
@@ -61,6 +63,8 @@ export type CodexStatusResponse = Readonly<{
   checkedPaths: readonly string[];
   processes: readonly CodexProcessResponse[];
   priorityStabilization: PriorityStabilizationResponse;
+  packageAllowsElevation: boolean | null;
+  elevationDiagnostic: string | null;
 }>;
 
 export type CodexProcessResponse = Readonly<{
@@ -101,6 +105,21 @@ export function parseCodexStatusResponse(response: CodexStatusResponse): CodexSt
   if (response.executablePath === null || response.executablePath.length === 0) {
     throw new Error("Codex status response is missing the executable path.");
   }
+  if (
+    response.packageAllowsElevation !== null &&
+    typeof response.packageAllowsElevation !== "boolean"
+  ) {
+    throw new Error("Codex status response has an invalid elevation capability.");
+  }
+  if (
+    response.elevationDiagnostic !== null &&
+    (typeof response.elevationDiagnostic !== "string" || response.elevationDiagnostic.length === 0)
+  ) {
+    throw new Error("Codex status response has an invalid elevation diagnostic.");
+  }
+  if (response.packageAllowsElevation === null && response.elevationDiagnostic === null) {
+    throw new Error("Codex status response is missing the elevation capability result.");
+  }
 
   return {
     state: "Found",
@@ -108,6 +127,8 @@ export function parseCodexStatusResponse(response: CodexStatusResponse): CodexSt
     checkedPaths: response.checkedPaths,
     processes,
     priorityStabilization,
+    packageAllowsElevation: response.packageAllowsElevation,
+    elevationDiagnostic: response.elevationDiagnostic,
   };
 }
 
@@ -118,6 +139,41 @@ export function createFailedCodexStatus(message: string): CodexStatus {
     processes: [],
     priorityStabilization: IDLE_PRIORITY_STABILIZATION,
   };
+}
+
+export function codexStatusesAreEqual(left: CodexStatus, right: CodexStatus): boolean {
+  if (
+    left.state !== right.state ||
+    !codexProcessesAreEqual(left.processes, right.processes) ||
+    !priorityStabilizationsAreEqual(
+      left.priorityStabilization,
+      right.priorityStabilization
+    )
+  ) {
+    return false;
+  }
+
+  switch (left.state) {
+    case "Unchecked":
+      return right.state === "Unchecked";
+    case "Checking":
+      return right.state === "Checking";
+    case "Found":
+      return (
+        right.state === "Found" &&
+        left.executablePath === right.executablePath &&
+        left.packageAllowsElevation === right.packageAllowsElevation &&
+        left.elevationDiagnostic === right.elevationDiagnostic &&
+        stringArraysAreEqual(left.checkedPaths, right.checkedPaths)
+      );
+    case "NotFound":
+      return (
+        right.state === "NotFound" &&
+        stringArraysAreEqual(left.checkedPaths, right.checkedPaths)
+      );
+    case "Failed":
+      return right.state === "Failed" && left.message === right.message;
+  }
 }
 
 function parseCodexProcesses(processes: readonly CodexProcessResponse[]): readonly CodexProcess[] {
@@ -153,6 +209,52 @@ function parseCodexProcess(process: CodexProcessResponse): CodexProcess {
   }
 
   return process;
+}
+
+function codexProcessesAreEqual(
+  left: readonly CodexProcess[],
+  right: readonly CodexProcess[]
+): boolean {
+  return (
+    left.length === right.length &&
+    left.every((process, index) => {
+      const otherProcess = right[index];
+      return (
+        otherProcess !== undefined &&
+        process.processId === otherProcess.processId &&
+        process.processName === otherProcess.processName &&
+        process.executablePath === otherProcess.executablePath &&
+        process.priority === otherProcess.priority &&
+        process.elevation === otherProcess.elevation
+      );
+    })
+  );
+}
+
+function priorityStabilizationsAreEqual(
+  left: PriorityStabilization,
+  right: PriorityStabilization
+): boolean {
+  return (
+    left.state === right.state &&
+    left.message === right.message &&
+    left.attempts === right.attempts &&
+    numberArraysAreEqual(left.updatedProcessIds, right.updatedProcessIds)
+  );
+}
+
+function stringArraysAreEqual(
+  left: readonly string[],
+  right: readonly string[]
+): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function numberArraysAreEqual(
+  left: readonly number[],
+  right: readonly number[]
+): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
 }
 
 function isCodexProcessPriority(value: string): value is CodexProcessPriority {

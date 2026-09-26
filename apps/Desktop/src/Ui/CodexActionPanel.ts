@@ -1,13 +1,13 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
 import type { CodexStatus } from "../Domain/CodexInstallation";
 import type { RuntimeStatus } from "../Domain/RuntimeStatus";
+import { createLaunchIcon, createRefreshIcon } from "./ApplicationIcons";
 
 export type CodexActionPanelProps = Readonly<{
   actionStatus: ActionStatus;
   codexStatus: CodexStatus;
   onRefresh: () => void;
   onOpenCodex: () => void;
-  onRegisterRunAsAdministrator: () => void;
   runtimeStatus: RuntimeStatus;
 }>;
 
@@ -16,14 +16,61 @@ export function createCodexActionPanel({
   codexStatus,
   onRefresh,
   onOpenCodex,
-  onRegisterRunAsAdministrator,
   runtimeStatus,
 }: CodexActionPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
-  panel.className = "CodexActionPanel";
+  panel.className = "Panel CodexActionPanel";
+
+  const header = document.createElement("header");
+  header.className = "PanelHeader CodexActionHeader";
+
+  const heading = document.createElement("div");
+  heading.className = "SectionHeading";
+
+  const title = document.createElement("h2");
+  title.className = "SectionTitle";
+  title.textContent = "Controle do Codex";
+
+  const description = document.createElement("p");
+  description.className = "SectionDescription";
+  description.textContent = createControlDescription();
+  heading.append(title, description);
+
+  const actions = document.createElement("div");
+  actions.className = "CodexActionButtons";
+
+  const refreshLabel = codexStatus.state === "Checking" ? "Verificando" : "Verificar";
+  const refreshCodexButton = createActionButton(
+    "SecondaryButton",
+    refreshLabel,
+    createRefreshIcon(),
+    onRefresh
+  );
+  refreshCodexButton.disabled = !canRefreshCodex(codexStatus);
+
+  const isOpeningCodex = runtimeStatus === "Opening";
+  const openLabel = isOpeningCodex
+    ? "Abrindo Codex como administrador"
+    : "Abrir Codex como administrador";
+  const openCodexButton = createActionButton(
+    "PrimaryButton",
+    openLabel,
+    createLaunchIcon(),
+    onOpenCodex
+  );
+  openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus, runtimeStatus);
+  if (isOpeningCodex) {
+    openCodexButton.classList.add("IsBusy");
+    openCodexButton.setAttribute("aria-busy", "true");
+  }
+
+  actions.append(refreshCodexButton, openCodexButton);
+  header.append(heading, actions);
 
   const status = document.createElement("div");
   status.className = "CodexActionStatus";
+  status.setAttribute("aria-atomic", "true");
+  status.setAttribute("aria-live", "polite");
   status.append(createRuntimeStatusElement(runtimeStatus));
 
   const actionFeedback = createActionFeedbackElement(actionStatus);
@@ -31,51 +78,34 @@ export function createCodexActionPanel({
     status.append(actionFeedback);
   }
 
-  const actions = document.createElement("div");
-  actions.className = "CodexActionButtons";
-
-  const refreshCodexButton = document.createElement("button");
-  refreshCodexButton.className = "SecondaryButton";
-  refreshCodexButton.type = "button";
-  refreshCodexButton.disabled = !canRefreshCodex(codexStatus, actionStatus);
-  refreshCodexButton.textContent = codexStatus.state === "Checking" ? "Verificando" : "Verificar Codex";
-  refreshCodexButton.addEventListener("click", onRefresh);
-
-  const registerAdminButton = document.createElement("button");
-  registerAdminButton.className = "SecondaryButton";
-  registerAdminButton.type = "button";
-  registerAdminButton.disabled = !canRegisterRunAsAdministrator(codexStatus, actionStatus);
-  registerAdminButton.textContent =
-    actionStatus.state === "Running" && actionStatus.label === "Salvando admin"
-      ? "Salvando"
-      : "Salvar admin";
-  registerAdminButton.addEventListener("click", onRegisterRunAsAdministrator);
-
-  const openCodexButton = document.createElement("button");
-  openCodexButton.className = "PrimaryButton";
-  openCodexButton.type = "button";
-  openCodexButton.disabled = !canOpenCodex(codexStatus, actionStatus, runtimeStatus);
-  openCodexButton.textContent =
-    runtimeStatus === "Opening" && actionStatus.state === "Running"
-      ? actionStatus.label
-      : "Abrir Codex";
-  openCodexButton.addEventListener("click", onOpenCodex);
-
-  actions.append(refreshCodexButton, registerAdminButton, openCodexButton);
-  panel.append(status, actions);
-
+  panel.append(header, status);
   return panel;
 }
 
-function canRefreshCodex(codexStatus: CodexStatus, actionStatus: ActionStatus): boolean {
-  return codexStatus.state !== "Checking" && actionStatus.state !== "Running";
+function createActionButton(
+  className: string,
+  label: string,
+  icon: SVGSVGElement,
+  onClick: () => void
+): HTMLButtonElement {
+  const button = document.createElement("button");
+  button.className = className;
+  button.type = "button";
+
+  const labelElement = document.createElement("span");
+  labelElement.textContent = label;
+
+  button.append(icon, labelElement);
+  button.addEventListener("click", onClick);
+  return button;
 }
 
-function canRegisterRunAsAdministrator(
-  codexStatus: CodexStatus,
-  actionStatus: ActionStatus
-): boolean {
-  return codexStatus.state !== "Checking" && actionStatus.state !== "Running";
+function canRefreshCodex(codexStatus: CodexStatus): boolean {
+  return codexStatus.state !== "Checking";
+}
+
+function createControlDescription(): string {
+  return "Abre uma sessao administrativa com perfil proprio, preservando a instancia atual.";
 }
 
 function canOpenCodex(
@@ -83,13 +113,17 @@ function canOpenCodex(
   actionStatus: ActionStatus,
   runtimeStatus: RuntimeStatus
 ): boolean {
-  return codexStatus.state === "Found" && actionStatus.state !== "Running" && runtimeStatus !== "Opening";
+  return (
+    codexStatus.state === "Found" &&
+    actionStatus.state !== "Running" &&
+    runtimeStatus !== "Opening"
+  );
 }
 
 function createRuntimeStatusElement(runtimeStatus: RuntimeStatus): HTMLParagraphElement {
   const element = document.createElement("p");
   element.className = `RuntimeStatus RuntimeStatus--${runtimeStatus}`;
-  element.textContent = `Estatus: ${formatRuntimeStatus(runtimeStatus)}`;
+  element.textContent = `Prioridade: ${formatRuntimeStatus(runtimeStatus)}`;
   return element;
 }
 

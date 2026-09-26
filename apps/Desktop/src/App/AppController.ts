@@ -2,14 +2,19 @@ import {
   cleanCodexWorkspace,
   getCodexStatus,
   openCodex,
-  registerCodexRunAsAdministrator,
+  uninstallCodexProduct,
 } from "../Backend/CodexCommands";
 import type { AppSection } from "../Domain/AppSection";
+import { codexStatusesAreEqual } from "../Domain/CodexInstallation";
 import {
   CODEX_CLEANUP_ACTION_LABEL,
   type CodexCleanupReport,
 } from "../Domain/CodexCleanup";
-import type { CodexLaunchMethod, CodexLaunchResponse } from "../Domain/CodexLaunch";
+import {
+  CODEX_UNINSTALL_ACTION_LABEL,
+  type CodexUninstallReport,
+} from "../Domain/CodexUninstall";
+import type { CodexLaunchResponse } from "../Domain/CodexLaunch";
 import {
   INITIAL_APP_STATE,
   clearConsoleMessages,
@@ -22,6 +27,8 @@ import {
   setFailedCodexStatus,
   setRunningActionStatus,
   setSucceededActionStatus,
+  setUninstallConfirmationArmed,
+  setUninstallReport,
   setWaitingRuntimeStatus,
   type AppState,
 } from "./AppState";
@@ -32,9 +39,8 @@ import {
 } from "../Domain/PriorityStabilization";
 
 const OPEN_CODEX_ACTION_LABEL = "Abrindo Codex";
-const SAVE_ADMIN_MODE_ACTION_LABEL = "Salvando admin";
-const CODEX_OPEN_STATUS_POLL_ATTEMPTS = 36;
-const CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS = 700;
+const CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS = 500;
+const CODEX_OPEN_STATUS_POLL_BUDGET_MILLISECONDS = 35_000;
 
 export function mountApp(root: HTMLElement): void {
   let state: AppState = INITIAL_APP_STATE;
@@ -44,6 +50,12 @@ export function mountApp(root: HTMLElement): void {
     root.replaceChildren(
       createShell({
         state,
+        onArmUninstallConfirmation(): void {
+          armUninstallConfirmation();
+        },
+        onCancelUninstallConfirmation(): void {
+          cancelUninstallConfirmation();
+        },
         onCleanCodex(): void {
           void cleanCodex();
         },
@@ -59,11 +71,11 @@ export function mountApp(root: HTMLElement): void {
         onOpenCodex(): void {
           void launchCodex();
         },
-        onRegisterRunAsAdministrator(): void {
-          void saveRunAsAdministratorMode();
-        },
         onSelectSection(section: AppSection): void {
           selectSection(section);
+        },
+        onUninstallCodex(): void {
+          void uninstallCodex();
         },
       })
     );
@@ -128,26 +140,6 @@ export function mountApp(root: HTMLElement): void {
     await refreshCodexStatus();
   }
 
-  async function saveRunAsAdministratorMode(): Promise<void> {
-    state = setRunningActionStatus(state, SAVE_ADMIN_MODE_ACTION_LABEL);
-    render();
-
-    const result = await registerCodexRunAsAdministrator();
-    if (!result.ok) {
-      state = setFailedActionStatus(state, result.error.message);
-      render();
-      return;
-    }
-
-    const registeredCount = result.value.registeredExecutablePaths.length;
-    state = setSucceededActionStatus(
-      state,
-      `Modo administrador salvo para ${registeredCount} executavel(is) do Codex.`
-    );
-    render();
-    await refreshCodexStatus();
-  }
-
   async function cleanCodex(): Promise<void> {
     state = setRunningActionStatus(state, CODEX_CLEANUP_ACTION_LABEL);
     render();
@@ -167,8 +159,42 @@ export function mountApp(root: HTMLElement): void {
     await refreshCodexStatus();
   }
 
+  function armUninstallConfirmation(): void {
+    state = setUninstallConfirmationArmed(state, true);
+    render();
+  }
+
+  function cancelUninstallConfirmation(): void {
+    state = setUninstallConfirmationArmed(state, false);
+    render();
+  }
+
+  async function uninstallCodex(): Promise<void> {
+    state = setRunningActionStatus(state, CODEX_UNINSTALL_ACTION_LABEL);
+    render();
+
+    const result = await uninstallCodexProduct();
+    if (!result.ok) {
+      state = setFailedActionStatus(
+        setUninstallConfirmationArmed(state, false),
+        result.error.message
+      );
+      render();
+      return;
+    }
+
+    state = setUninstallReport(
+      setSucceededActionStatus(state, createUninstallSuccessMessage(result.value)),
+      result.value
+    );
+    render();
+    await refreshCodexStatus();
+  }
+
   async function monitorCodexOpening(monitorVersion: number): Promise<void> {
-    for (let attemptIndex = 0; attemptIndex < CODEX_OPEN_STATUS_POLL_ATTEMPTS; attemptIndex += 1) {
+    const deadline = Date.now() + CODEX_OPEN_STATUS_POLL_BUDGET_MILLISECONDS;
+
+    while (Date.now() < deadline) {
       await delay(CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS);
 
       if (monitorVersion !== openingMonitorVersion) {
@@ -176,10 +202,18 @@ export function mountApp(root: HTMLElement): void {
       }
 
       const result = await getCodexStatus();
+      const previousCodexStatus = state.codexStatus;
+      const previousRuntimeStatus = state.runtimeStatus;
       state = result.ok
         ? setCodexStatus(state, result.value)
         : setFailedCodexStatus(state, result.error.message);
-      render();
+
+      if (
+        !codexStatusesAreEqual(previousCodexStatus, state.codexStatus) ||
+        previousRuntimeStatus !== state.runtimeStatus
+      ) {
+        render();
+      }
 
       if (result.ok && priorityStabilizationHasFailed(result.value.priorityStabilization)) {
         state = setFailedActionStatus(
@@ -212,19 +246,18 @@ export function mountApp(root: HTMLElement): void {
   }
 
   function createCodexLaunchSuccessMessage(response: CodexLaunchResponse): string {
-    const method = formatCodexLaunchMethod(response.launchMethod);
-    const elevation = response.appServerElevationObserved
-      ? "app-server elevado confirmado"
-      : "app-server elevado ainda nao confirmado";
-    const fallback = response.fallbackUsed ? " com fallback" : "";
-    const diagnostic =
-      response.diagnosticMessage === null ? "" : ` Detalhe: ${response.diagnosticMessage}`;
-
-    return `Codex iniciado via ${method}${fallback}; ${elevation}. Ajustando prioridade.${diagnostic}`;
+    return `Codex administrativo ativo (PID ${response.processId}, app-server elevado). Ajustando prioridade.`;
   }
 
   function createCleanupSuccessMessage(report: CodexCleanupReport): string {
     return `Limpeza concluida: ${report.removedThreadCount} conversa(s), ${report.removedFileCount} arquivo(s), ${formatBytes(report.freedBytes)} liberados.`;
+  }
+
+  function createUninstallSuccessMessage(report: CodexUninstallReport): string {
+    const packageState = report.packageRemoved
+      ? "pacote removido"
+      : "pacote ausente ou nao removido";
+    return `Desinstalacao concluida: ${report.removedFileCount} arquivo(s), ${report.removedDirectoryCount} pasta(s), ${formatBytes(report.freedBytes)} liberados; ${packageState}.`;
   }
 
   function formatBytes(bytes: number): string {
@@ -238,15 +271,6 @@ export function mountApp(root: HTMLElement): void {
     }
 
     return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
-  }
-
-  function formatCodexLaunchMethod(method: CodexLaunchMethod): string {
-    switch (method) {
-      case "ElevatedScheduledTask":
-        return "tarefa elevada";
-      case "ShellExecuteRunAs":
-        return "runas";
-    }
   }
 
   render();

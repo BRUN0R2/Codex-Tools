@@ -1,3 +1,3 @@
-export type AppSection = "Admin" | "Cleanup";
+export type AppSection = "Processes" | "Cleanup" | "Uninstall";
 
-export const INITIAL_APP_SECTION: AppSection = "Admin";
+export const INITIAL_APP_SECTION: AppSection = "Processes";

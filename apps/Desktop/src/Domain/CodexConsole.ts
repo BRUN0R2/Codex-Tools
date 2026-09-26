@@ -15,6 +15,10 @@ export function createCodexConsoleMessages(status: CodexStatus): readonly Consol
     case "Checking":
       return ["Verificando Codex."];
     case "Found":
+      return appendPriorityStabilizationMessages(
+        [...createProcessMessages(status.processes), createElevationCapabilityMessage(status)],
+        status.priorityStabilization
+      );
     case "NotFound":
       return appendPriorityStabilizationMessages(
         createProcessMessages(status.processes),
@@ -26,6 +30,18 @@ export function createCodexConsoleMessages(status: CodexStatus): readonly Consol
         status.priorityStabilization
       );
   }
+}
+
+function createElevationCapabilityMessage(
+  status: Extract<CodexStatus, { state: "Found" }>
+): ConsoleMessage {
+  if (status.packageAllowsElevation === false) {
+    return "O manifesto nao declara allowElevation. Confira a elevacao real de cada processo acima.";
+  }
+  if (status.packageAllowsElevation === true) {
+    return "O pacote Codex declara allowElevation; confira a elevacao real de cada processo acima.";
+  }
+  return `Nao foi possivel verificar allowElevation: ${status.elevationDiagnostic ?? "erro desconhecido."}`;
 }
 
 function createProcessMessages(processes: readonly CodexProcess[]): readonly ConsoleMessage[] {

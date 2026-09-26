@@ -23,5 +23,7 @@ pub enum CommandErrorCode {
     CleanupFailed,
     CodexNotFound,
     InvalidState,
+    UninstallBlocked,
+    UninstallFailed,
     WindowsApiFailed,
 }

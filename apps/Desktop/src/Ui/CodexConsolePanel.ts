@@ -12,14 +12,22 @@ export function createCodexConsolePanel({
   onCopy,
 }: CodexConsolePanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
-  panel.className = "CodexConsolePanel";
+  panel.className = "Panel CodexConsolePanel";
 
   const header = document.createElement("header");
-  header.className = "CodexConsoleHeader";
+  header.className = "PanelHeader CodexConsoleHeader";
+
+  const heading = document.createElement("div");
+  heading.className = "SectionHeading";
 
   const title = document.createElement("h2");
-  title.className = "CodexConsoleTitle";
-  title.textContent = "Console";
+  title.className = "SectionTitle";
+  title.textContent = "Atividade";
+
+  const description = document.createElement("p");
+  description.className = "SectionDescription";
+  description.textContent = "Processos, prioridade e diagnosticos do ultimo fluxo.";
+  heading.append(title, description);
 
   const actions = document.createElement("div");
   actions.className = "CodexConsoleActions";
@@ -33,7 +41,7 @@ export function createCodexConsolePanel({
   output.setAttribute("aria-live", "polite");
   output.textContent = messages.length === 0 ? "Console vazio." : messages.join("\n");
 
-  header.append(title, actions);
+  header.append(heading, actions);
   panel.append(header, output);
 
   return panel;

@@ -1,7 +1,24 @@
 :root {
-  color: #172033;
-  background: #f2f5f9;
   color-scheme: light;
+  --color-accent: #0f766e;
+  --color-accent-hover: #0b625c;
+  --color-accent-soft: #e8f5f3;
+  --color-background: #f3f6f8;
+  --color-surface: #ffffff;
+  --color-surface-muted: #f7f9fb;
+  --color-border: #dce3ea;
+  --color-border-strong: #c7d1dc;
+  --color-text: #17212b;
+  --color-text-secondary: #526170;
+  --color-text-muted: #748292;
+  --radius-small: 8px;
+  --radius-medium: 12px;
+  --radius-large: 16px;
+  --shadow-surface:
+    0 1px 2px rgb(17 24 39 / 4%),
+    0 8px 24px rgb(17 24 39 / 4%);
+  background: var(--color-background);
+  color: var(--color-text);
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-size: 16px;
@@ -12,287 +29,531 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-body {
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  width: 100%;
+  min-width: 320px;
+  min-height: 100%;
   margin: 0;
-  min-width: 360px;
-  min-height: 520px;
-  background: radial-gradient(circle at 90% 0%, rgb(79 70 229 / 9%), transparent 34rem), #f2f5f9;
+}
+
+body {
+  min-height: 100vh;
+  overflow: hidden;
+  background: var(--color-background);
 }
 
 button {
+  border-radius: var(--radius-small);
   font: inherit;
 }
 
 button:focus-visible {
-  outline: 3px solid rgb(79 70 229 / 24%);
-  outline-offset: 2px;
+  border-color: var(--color-accent);
+  outline: 3px solid rgb(15 118 110 / 20%);
+  outline-offset: 1px;
+}
+
+h1,
+h2,
+p {
+  margin-top: 0;
+}
+
+::selection {
+  background: var(--color-accent-soft);
+  color: var(--color-text);
 }
 
 .AppShell {
-  box-sizing: border-box;
   display: grid;
-  gap: 22px;
-  grid-template-rows: auto 1fr;
-  min-height: 100vh;
-  margin: 0 auto;
-  max-width: 1280px;
-  padding: 28px 32px 32px;
-  width: 100%;
+  grid-template-columns: 220px minmax(0, 1fr);
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-background);
 }
 
-.AppHeader {
-  align-items: center;
+.WindowChrome {
+  position: fixed;
+  z-index: 40;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: 34px;
+  pointer-events: none;
+}
+
+.WindowChromeDragRegion {
+  position: absolute;
+  inset: 0 138px 0 0;
+  pointer-events: auto;
+}
+
+.WindowChromeControls {
+  position: absolute;
+  top: 0;
+  right: 0;
   display: flex;
-  justify-content: space-between;
+  height: 34px;
+  color: var(--color-text-secondary);
+  pointer-events: auto;
+}
+
+.WindowChromeButton {
+  display: grid;
+  width: 46px;
+  height: 34px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  outline: 0;
+  background: transparent;
+  box-shadow: none;
+  color: inherit;
+  cursor: pointer;
+  line-height: 1;
+  place-items: center;
+  transition:
+    color 120ms ease,
+    background-color 120ms ease;
+  appearance: none;
+}
+
+.WindowChromeButton:hover {
+  background: rgb(27 67 62 / 9%);
+  color: #203a38;
+}
+
+.WindowChromeClose:hover {
+  background: #c83f4f;
+  color: #ffffff;
+}
+
+.WindowChromeControls[data-suppress-hover] .WindowChromeButton:hover {
+  background: transparent;
+  color: inherit;
+}
+
+.AppSidebar {
+  position: sticky;
+  top: 0;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  padding: 46px 14px 16px;
+  border-right: 1px solid #29313a;
+  background: #171c22;
+  color: #f7fafc;
 }
 
 .AppIdentity {
-  align-items: center;
   display: flex;
-  gap: 12px;
+  align-items: center;
+  gap: 11px;
+  min-height: 44px;
+  margin: 0 6px 24px;
 }
 
 .AppBrandMark {
-  align-items: center;
-  background: linear-gradient(145deg, #222b40, #111827);
-  border-radius: 12px;
-  box-shadow: 0 8px 20px rgb(15 23 42 / 18%);
-  color: #fff;
-  display: flex;
-  font-size: 15px;
-  font-weight: 800;
-  height: 42px;
-  justify-content: center;
-  width: 42px;
-}
-
-.AppEyebrow {
-  color: #687386;
-  font-size: 10px;
-  font-weight: 800;
-  letter-spacing: 0.12em;
-  margin: 0 0 1px;
-  text-transform: uppercase;
-}
-
-.AppWorkspace {
   display: grid;
-  gap: 18px;
-  grid-template-columns: 190px minmax(0, 1fr);
-  min-height: 496px;
+  width: 38px;
+  height: 38px;
+  flex: none;
+  border-radius: 10px;
+  background: var(--color-accent);
+  color: #ffffff;
+  place-items: center;
+}
+
+.AppIdentity > strong {
+  overflow-wrap: anywhere;
+  font-size: 1.02rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+}
+
+.ApplicationIcon {
+  width: 20px;
+  height: 20px;
+  flex: none;
+}
+
+.AppBrandMark .ApplicationIcon {
+  width: 22px;
+  height: 22px;
 }
 
 .AppNavigation {
-  background: #172033;
-  border: 1px solid #263149;
-  border-radius: 16px;
-  box-shadow: 0 14px 34px rgb(15 23 42 / 12%);
-  align-content: start;
   display: grid;
   gap: 6px;
-  padding: 10px;
 }
 
 .AppNavigationButton {
-  background: transparent;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 40px;
+  padding: 0 10px;
   border: 1px solid transparent;
-  border-radius: 10px;
-  color: #aeb8ca;
+  border-radius: var(--radius-small);
+  background: transparent;
+  color: #cbd5df;
   cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  display: grid;
-  gap: 1px;
-  min-height: 54px;
-  padding: 8px 11px;
+  font-size: 0.9rem;
+  font-weight: 650;
   text-align: left;
-}
-
-.AppNavigationButton strong {
-  color: inherit;
-  font-size: 13px;
-}
-
-.AppNavigationButton span {
-  color: #7f8ba0;
-  font-size: 10px;
-  font-weight: 600;
-}
-
-.AppNavigationButton:hover {
-  background: rgb(255 255 255 / 6%);
-  color: #fff;
+  transition:
+    color 140ms ease,
+    border-color 140ms ease,
+    background-color 140ms ease;
 }
 
 .AppNavigationButton.IsActive {
-  background: #ffffff;
-  border-color: #fff;
-  box-shadow: 0 5px 14px rgb(0 0 0 / 18%);
-  color: #172033;
+  border-color: var(--color-accent);
+  background: var(--color-accent);
+  color: #ffffff;
 }
 
-.AppNavigationButton.IsActive span {
-  color: #69758a;
+.AppNavigationButton:hover:not(.IsActive) {
+  border-color: #303843;
+  background: #222932;
+  color: #f7fafc;
 }
 
-.AppTitle {
-  font-size: 23px;
+.SidebarFooter {
+  display: grid;
+  gap: 10px;
+  margin-top: auto;
+  padding-top: 18px;
+}
+
+.SidebarRuntime {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 7px 10px;
+  border: 1px solid #303843;
+  border-radius: 10px;
+  background: #222932;
+}
+
+.SidebarRuntimeIndicator {
+  width: 10px;
+  height: 10px;
+  border: 3px solid #46515f;
+  border-radius: 50%;
+  background: #9aa7b7;
+  box-sizing: content-box;
+}
+
+.SidebarRuntime--Ready .SidebarRuntimeIndicator {
+  border-color: rgb(45 212 191 / 20%);
+  background: #2dd4bf;
+}
+
+.SidebarRuntime--Running .SidebarRuntimeIndicator {
+  border-color: rgb(251 191 36 / 20%);
+  background: #fbbf24;
+  animation: StatusPulse 1.2s ease-in-out infinite;
+}
+
+.SidebarRuntime--Attention .SidebarRuntimeIndicator {
+  border-color: rgb(248 113 113 / 20%);
+  background: #f87171;
+}
+
+.SidebarRuntimeContent {
+  display: grid;
+  min-width: 0;
+  gap: 1px;
+}
+
+.SidebarRuntimeContent strong,
+.SidebarRuntimeContent small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.SidebarRuntimeContent strong {
+  color: #f7fafc;
+  font-size: 0.84rem;
+  font-weight: 750;
+}
+
+.SidebarRuntimeContent small {
+  color: #9aa7b7;
+  font-size: 0.68rem;
+}
+
+.AppWorkspace {
+  width: 100%;
+  height: calc(100vh - 34px);
+  min-width: 0;
+  min-height: 0;
+  margin-top: 34px;
+  padding: 12px clamp(24px, 3vw, 44px) 40px;
+  overflow-y: auto;
+}
+
+.WorkspaceHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  margin-bottom: 18px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.WorkspaceTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: clamp(1.55rem, 2vw, 1.8rem);
   font-weight: 750;
   letter-spacing: -0.025em;
-  margin: 0;
+  line-height: 1.2;
 }
 
 .ControlSurface {
-  background: #ffffff;
-  border: 1px solid #dce3ed;
-  border-radius: 16px;
-  box-shadow: 0 14px 38px rgb(31 41 55 / 7%);
-  box-sizing: border-box;
   display: grid;
-  gap: 24px;
-  grid-auto-rows: max-content;
-  grid-template-rows: auto auto minmax(0, 1fr) auto;
-  min-height: 496px;
-  padding: 26px;
+  width: 100%;
+  gap: 20px;
 }
 
-.SectionTitle {
-  font-size: 18px;
-  font-weight: 750;
-  letter-spacing: -0.015em;
-  margin: 0;
+.Panel {
+  min-width: 0;
+  padding: clamp(18px, 2vw, 24px);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-medium);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-surface);
+}
+
+.PanelHeader,
+.CodexCleanupHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
 }
 
 .SectionHeading {
   display: grid;
-  gap: 2px;
+  min-width: 0;
+  gap: 3px;
+}
+
+.SectionTitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 1.08rem;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
 }
 
 .SectionDescription {
-  color: #69758a;
-  font-size: 12px;
   margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+}
+
+.PanelEyebrow {
+  margin: 0 0 6px;
+  color: var(--color-accent);
+  font-size: 0.78rem;
+  font-weight: 750;
+  letter-spacing: 0.055em;
+  text-transform: uppercase;
 }
 
 .CodexStatusPanel {
-  align-items: center;
-  border: 1px solid #d8dee7;
-  border-radius: 11px;
-  box-sizing: border-box;
   display: flex;
-  gap: 10px;
-  padding: 13px 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 20px 22px;
+  border: 1px solid #cde3df;
+  border-radius: var(--radius-medium);
+  background: linear-gradient(135deg, var(--color-accent-soft), #f8fbfa 70%);
 }
 
-.CodexStatusIndicator {
-  background: #94a3b8;
-  border: 3px solid #e2e8f0;
-  border-radius: 50%;
-  flex: 0 0 auto;
-  height: 7px;
-  width: 7px;
+.CodexStatusPanel--Checking {
+  border-color: #ead9aa;
+  background: linear-gradient(135deg, #fff8e5, #fffdf7 70%);
 }
 
-.CodexStatusPanel--Found .CodexStatusIndicator {
-  background: #16a34a;
-  border-color: #dcfce7;
+.CodexStatusPanel--NotFound,
+.CodexStatusPanel--Failed {
+  border-color: #f0d0cd;
+  background: linear-gradient(135deg, #fff0ef, #fffafa 70%);
 }
 
-.CodexStatusPanel--Checking .CodexStatusIndicator {
-  animation: StatusPulse 1.2s ease-in-out infinite;
-  background: #d97706;
-  border-color: #fef3c7;
+.CodexStatusContent {
+  min-width: 0;
 }
 
-.CodexStatusPanel--Failed .CodexStatusIndicator,
-.CodexStatusPanel--NotFound .CodexStatusIndicator {
-  background: #dc2626;
-  border-color: #fee2e2;
+.CodexStatusTitle {
+  margin: 0 0 8px;
+  color: var(--color-text);
+  font-size: 1.3rem;
+  font-weight: 750;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
 }
 
 .CodexStatusText {
-  color: #353d49;
-  font-size: 13px;
+  max-width: 760px;
   margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.92rem;
   overflow-wrap: anywhere;
 }
 
-.CodexConsolePanel {
-  align-self: stretch;
-  background: linear-gradient(150deg, #151d2c, #0f1520);
-  border: 1px solid #2a3549;
-  border-radius: 13px;
-  box-shadow: inset 0 1px rgb(255 255 255 / 4%);
-  box-sizing: border-box;
-  display: grid;
-  gap: 12px;
-  grid-template-rows: auto minmax(0, 1fr);
-  min-height: 256px;
-  padding: 14px;
-}
-
-.CodexConsoleHeader {
+.CodexStatusBadge {
+  display: inline-flex;
   align-items: center;
-  display: flex;
-  gap: 12px;
-  justify-content: space-between;
+  gap: 7px;
+  min-height: 30px;
+  flex: none;
+  padding: 0 11px;
+  border: 1px solid rgb(15 118 110 / 18%);
+  border-radius: 999px;
+  background: rgb(255 255 255 / 72%);
+  color: var(--color-accent);
+  font-size: 0.75rem;
+  font-weight: 750;
 }
 
-.CodexConsoleTitle {
-  color: #f5f7fa;
-  font-size: 13px;
-  font-weight: 700;
-  margin: 0;
+.CodexStatusIndicator {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #94a3b8;
 }
 
-.CodexConsoleActions {
-  display: grid;
-  gap: 8px;
-  grid-template-columns: repeat(2, auto);
+.CodexStatusPanel--Found .CodexStatusIndicator {
+  background: #0f9f6e;
 }
 
-.CodexConsoleOutput {
-  color: #dbe7f3;
-  font-family:
-    "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
-  font-size: 12px;
-  line-height: 1.55;
-  margin: 0;
-  overflow: auto;
-  overflow-wrap: anywhere;
-  white-space: pre-wrap;
+.CodexStatusPanel--Checking .CodexStatusBadge {
+  border-color: rgb(217 119 6 / 18%);
+  color: #a16207;
+}
+
+.CodexStatusPanel--Checking .CodexStatusIndicator {
+  background: #d97706;
+  animation: StatusPulse 1.2s ease-in-out infinite;
+}
+
+.CodexStatusPanel--NotFound .CodexStatusBadge,
+.CodexStatusPanel--Failed .CodexStatusBadge {
+  border-color: rgb(180 35 24 / 18%);
+  color: #b42318;
+}
+
+.CodexStatusPanel--NotFound .CodexStatusIndicator,
+.CodexStatusPanel--Failed .CodexStatusIndicator {
+  background: #dc2626;
 }
 
 .CodexActionPanel {
-  align-self: end;
-  align-items: end;
   display: grid;
-  gap: 16px;
-  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 18px;
 }
 
 .CodexActionButtons {
-  display: grid;
-  gap: 12px;
-  grid-template-columns: auto auto auto;
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
 }
 
 .CodexActionStatus {
   display: grid;
-  gap: 4px;
+  gap: 5px;
+  padding-top: 15px;
+  border-top: 1px solid var(--color-border);
 }
 
-.CodexCleanupPanel {
-  align-content: start;
+.RuntimeStatus {
+  margin: 0;
+  font-size: 0.86rem;
+  font-weight: 750;
+  overflow-wrap: anywhere;
+}
+
+.RuntimeStatus--Waiting {
+  color: #425466;
+}
+
+.RuntimeStatus--Opening {
+  color: #a16207;
+}
+
+.RuntimeStatus--Ready {
+  color: #0f7a52;
+}
+
+.ActionFeedback {
+  max-width: 920px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  overflow-wrap: anywhere;
+}
+
+.ActionFeedback--Failed {
+  color: #b42318;
+}
+
+.CodexConsolePanel {
   display: grid;
-  gap: 20px;
+  gap: 16px;
 }
 
-.CodexCleanupHeader {
-  align-items: center;
+.CodexConsoleActions {
   display: flex;
-  gap: 16px;
-  justify-content: space-between;
+  flex: none;
+  gap: 8px;
+}
+
+.CodexConsoleOutput {
+  min-height: 150px;
+  max-height: 220px;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  border: 1px solid #2a3549;
+  border-radius: 10px;
+  background: linear-gradient(150deg, #151d2c, #0f1520);
+  box-shadow: inset 0 1px rgb(255 255 255 / 4%);
+  color: #dbe7f3;
+  font-family: "Cascadia Mono", "JetBrains Mono", Consolas, "Courier New", monospace;
+  font-size: 0.76rem;
+  line-height: 1.55;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.CodexCleanupPanel,
+.CodexUninstallPanel {
+  display: grid;
+  align-content: start;
+  gap: 20px;
 }
 
 .CleanupSummary {
@@ -302,163 +563,200 @@ button:focus-visible {
 }
 
 .CleanupSummaryItem {
-  border: 1px solid #d8dee7;
-  background: #f8fafc;
-  border-radius: 11px;
-  box-sizing: border-box;
   display: grid;
-  gap: 2px;
-  min-height: 76px;
-  padding: 12px;
+  min-height: 78px;
+  padding: 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
+  background: var(--color-surface-muted);
+  gap: 3px;
 }
 
 .CleanupSummaryItem strong {
-  color: #171a1f;
-  font-size: 18px;
+  color: var(--color-text);
+  font-size: 1.1rem;
   overflow-wrap: anywhere;
 }
 
 .CleanupSummaryItem span {
-  color: #52606f;
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
   font-weight: 700;
 }
 
 .CleanupTargets {
-  border: 1px solid #d8dee7;
-  border-radius: 11px;
   display: grid;
   overflow: hidden;
+  border: 1px solid var(--color-border);
+  border-radius: 10px;
 }
 
 .CleanupTargetRow {
-  align-items: center;
   display: grid;
+  grid-template-columns: minmax(130px, 0.42fr) minmax(0, 1fr);
+  align-items: center;
   gap: 16px;
-  grid-template-columns: minmax(120px, 0.5fr) minmax(0, 1fr);
-  min-height: 44px;
+  min-height: 46px;
   padding: 0 14px;
 }
 
 .CleanupTargetRow + .CleanupTargetRow {
-  border-top: 1px solid #e4e9f0;
+  border-top: 1px solid #e7ebf0;
 }
 
 .CleanupTargetName {
-  color: #171a1f;
-  font-size: 13px;
+  color: var(--color-text);
+  font-size: 0.82rem;
   font-weight: 700;
 }
 
 .CleanupTargetResult {
-  color: #52606f;
-  font-size: 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
 }
 
 .CleanupEmptyState,
 .CleanupWarnings p {
-  color: #52606f;
-  font-size: 13px;
   margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
   overflow-wrap: anywhere;
+}
+
+.CleanupEmptyState {
+  padding: 14px;
 }
 
 .CleanupWarnings {
-  border-left: 3px solid #b7791f;
   display: grid;
   gap: 6px;
   padding-left: 12px;
+  border-left: 3px solid #b7791f;
 }
 
-.RuntimeStatus {
-  font-size: 13px;
-  font-weight: 700;
+.UninstallActions {
+  display: flex;
+  flex: none;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.UninstallScopeNotice {
+  display: grid;
+  gap: 5px;
+  padding: 14px 16px;
+  border: 1px solid #f2d09b;
+  border-radius: 10px;
+  background: #fff9ed;
+}
+
+.UninstallScopeNotice.IsArmed {
+  border-color: #f0b9b4;
+  background: #fff2f1;
+}
+
+.UninstallScopeNotice strong {
+  color: #9a5b12;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.035em;
+  text-transform: uppercase;
+}
+
+.UninstallScopeNotice.IsArmed strong {
+  color: #991b1b;
+}
+
+.UninstallScopeNotice p {
   margin: 0;
+  color: #76501f;
+  font-size: 0.83rem;
   overflow-wrap: anywhere;
 }
 
-.RuntimeStatus--Waiting {
-  color: #18345a;
-}
-
-.RuntimeStatus--Opening {
-  color: #a16207;
-}
-
-.RuntimeStatus--Ready {
-  color: #16803a;
-}
-
-.ActionFeedback {
-  color: #52606f;
-  font-size: 12px;
-  margin: 0;
-  max-width: 560px;
-  overflow-wrap: anywhere;
-}
-
-.ActionFeedback--Failed {
-  color: #b42318;
-}
-
-.PrimaryButton {
-  background: #4f46e5;
-  border: 1px solid #4f46e5;
-  border-radius: 10px;
-  box-shadow: 0 5px 12px rgb(79 70 229 / 22%);
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  min-height: 38px;
-  min-width: 128px;
-  padding: 0 14px;
-}
-
-.SecondaryButton {
-  background: #ffffff;
-  border: 1px solid #b9c3cf;
-  border-radius: 10px;
-  color: #171a1f;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  min-height: 38px;
-  min-width: 96px;
-  padding: 0 14px;
-}
-
-.DangerButton {
-  background: #8f1d1d;
-  border: 1px solid #8f1d1d;
-  border-radius: 10px;
-  color: #ffffff;
-  cursor: pointer;
-  font-size: 13px;
-  font-weight: 700;
-  min-height: 38px;
-  min-width: 128px;
-  padding: 0 14px;
+.UninstallScopeNotice.IsArmed p {
+  color: #7f1d1d;
 }
 
 .PrimaryButton,
 .SecondaryButton,
-.DangerButton,
-.AppNavigationButton {
-  transition: background-color 140ms ease, border-color 140ms ease, box-shadow 140ms ease,
-    color 140ms ease, transform 140ms ease;
+.DangerButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--radius-small);
+  cursor: pointer;
+  font-size: 0.84rem;
+  font-weight: 700;
+  white-space: nowrap;
+  transition:
+    border-color 140ms ease,
+    background-color 140ms ease,
+    color 140ms ease;
 }
 
-.PrimaryButton:not(:disabled):hover,
-.DangerButton:not(:disabled):hover {
-  filter: brightness(1.08);
-  transform: translateY(-1px);
+.PrimaryButton {
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent);
+  color: #ffffff;
 }
 
-.SecondaryButton:not(:disabled):hover {
-  background: #f8fafc;
-  border-color: #8c99aa;
+.PrimaryButton:hover:not(:disabled) {
+  border-color: var(--color-accent-hover);
+  background: var(--color-accent-hover);
+}
+
+.PrimaryButton.IsBusy::before {
+  width: 14px;
+  height: 14px;
+  border: 2px solid rgb(255 255 255 / 38%);
+  border-top-color: #ffffff;
+  border-radius: 50%;
+  content: "";
+  animation: ActionButtonSpin 720ms linear infinite;
+}
+
+.PrimaryButton.IsBusy .ApplicationIcon {
+  display: none;
+}
+
+.SecondaryButton {
+  border: 1px solid var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-text-secondary);
+}
+
+.SecondaryButton:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-accent);
+}
+
+.DangerButton {
+  border: 1px solid #912018;
+  background: #b42318;
+  color: #ffffff;
+}
+
+.DangerButton:hover:not(:disabled) {
+  border-color: #7f1d1d;
+  background: #991b1b;
+}
+
+.PrimaryButton:disabled,
+.SecondaryButton:disabled,
+.DangerButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+.PrimaryButton.IsBusy:disabled {
+  cursor: wait;
+  opacity: 1;
 }
 
 @keyframes StatusPulse {
@@ -467,81 +765,114 @@ button:focus-visible {
   }
 }
 
-.PrimaryButton:disabled {
-  background: #eef2f6;
-  border-color: #d8dee7;
-  color: #7a8491;
-  cursor: wait;
-}
-
-.SecondaryButton:disabled {
-  background: #eef2f6;
-  border-color: #d8dee7;
-  color: #7a8491;
-  cursor: not-allowed;
-}
-
-.DangerButton:disabled {
-  background: #f4e7e7;
-  border-color: #ead0d0;
-  color: #9c6f6f;
-  cursor: wait;
-}
-
-@media (max-width: 760px) {
-  .AppShell {
-    padding: 22px 18px;
+@keyframes ActionButtonSpin {
+  to {
+    transform: rotate(360deg);
   }
-  .AppHeader {
-    align-items: start;
+}
+
+@media (max-width: 980px) {
+  .CodexActionHeader,
+  .CodexCleanupHeader {
+    align-items: flex-start;
     flex-direction: column;
   }
 
-  .AppWorkspace {
+  .CodexActionButtons,
+  .UninstallActions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow: auto;
+  }
+
+  .AppShell {
     grid-template-columns: 1fr;
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .AppSidebar {
+    position: static;
+    height: auto;
+    padding: 46px 14px 14px;
+  }
+
+  .AppIdentity {
+    margin-bottom: 16px;
   }
 
   .AppNavigation {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .AppNavigationButton {
-    text-align: center;
+    justify-content: center;
   }
 
-  .ControlSurface {
-    min-height: 560px;
+  .SidebarFooter {
+    margin-top: 16px;
+  }
+
+  .AppWorkspace {
+    height: auto;
+    min-height: 0;
+    margin-top: 0;
+    padding: 28px 20px 24px;
+    overflow: visible;
   }
 
   .CleanupSummary {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+}
 
-  .CleanupTargetRow {
-    align-items: start;
-    gap: 4px;
-    grid-template-columns: 1fr;
-    padding: 10px 14px;
+@media (max-width: 640px) {
+  .AppSidebar,
+  .AppWorkspace {
+    padding-right: 14px;
+    padding-left: 14px;
   }
 
-  .CodexActionPanel {
+  .AppNavigation {
     grid-template-columns: 1fr;
   }
 
-  .CodexConsoleHeader {
-    align-items: stretch;
+  .AppNavigationButton {
+    justify-content: flex-start;
+  }
+
+  .PanelHeader,
+  .CodexCleanupHeader,
+  .CodexStatusPanel {
+    align-items: flex-start;
     flex-direction: column;
   }
 
+  .CodexActionButtons,
   .CodexConsoleActions,
-  .CodexActionButtons {
+  .UninstallActions {
+    width: 100%;
+  }
+
+  .PrimaryButton,
+  .SecondaryButton,
+  .DangerButton {
+    flex: 1 1 auto;
+  }
+
+  .CleanupSummary {
     grid-template-columns: 1fr;
   }
 
-  .CodexActionPanel .PrimaryButton,
-  .CodexActionPanel .SecondaryButton,
-  .CodexCleanupPanel .DangerButton,
-  .CodexConsolePanel .SecondaryButton {
-    justify-self: stretch;
+  .CleanupTargetRow {
+    grid-template-columns: 1fr;
+    align-items: start;
+    gap: 4px;
+    padding: 10px 14px;
   }
 }

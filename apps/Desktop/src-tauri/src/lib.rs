@@ -3,7 +3,6 @@ mod contracts;
 mod platform;
 mod priority;
 
-#[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     if platform::windows_shell::relaunch_current_process_as_administrator_if_needed()
         .expect("Codex Tools must be able to request administrator elevation")
@@ -20,7 +19,7 @@ pub fn run() {
             commands::codex::clean_codex_workspace,
             commands::codex::get_codex_status,
             commands::codex::open_codex,
-            commands::codex::register_codex_run_as_administrator
+            commands::codex::uninstall_codex_product
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

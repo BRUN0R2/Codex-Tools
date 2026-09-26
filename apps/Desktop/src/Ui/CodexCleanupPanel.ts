@@ -22,7 +22,7 @@ export function createCodexCleanupPanel({
   onClean,
 }: CodexCleanupPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
-  panel.className = "CodexCleanupPanel";
+  panel.className = "Panel CodexCleanupPanel";
 
   const header = document.createElement("header");
   header.className = "CodexCleanupHeader";

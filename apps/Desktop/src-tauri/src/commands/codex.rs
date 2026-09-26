@@ -1,5 +1,8 @@
-use std::thread::sleep;
-use std::time::Duration;
+use std::env;
+use std::fs;
+use std::path::PathBuf;
+use std::thread;
+use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::State;
@@ -8,20 +11,27 @@ use crate::contracts::{CommandError, CommandErrorCode};
 use crate::platform::codex_cleanup::{
     CodexCleanupReport, clean_codex_workspace as clean_codex_workspace_data,
 };
-use crate::platform::windows_app_compat::register_run_as_administrator;
-use crate::platform::windows_codex::{
-    CODEX_DO_NOT_DE_ELEVATE_ARGUMENT, collect_codex_executable_inventory,
-    is_codex_app_server_executable_path, locate_codex_installation,
+use crate::platform::codex_uninstall::{
+    CodexUninstallReport, uninstall_codex_product as uninstall_codex_product_data,
 };
+use crate::platform::windows_codex::{
+    codex_desktop_application_user_model_id, locate_codex_installation,
+};
+use crate::platform::windows_package_activation::launch_codex_desktop_as_administrator;
+use crate::platform::windows_package_capability::codex_package_allows_elevation;
 use crate::platform::windows_process::{
     CodexProcessInspection, WindowsProcessElevationState, WindowsProcessPriorityState,
-    inspect_running_codex_processes,
+    find_elevated_codex_desktop_process, inspect_running_codex_processes,
 };
-use crate::platform::windows_scheduled_task::launch_codex_desktop_via_elevated_scheduled_task;
-use crate::platform::windows_shell::launch_as_administrator_with_parameters;
 use crate::priority::stabilization::{
     PriorityStabilizationSnapshot, PriorityStabilizationStore, start_high_priority_stabilization,
 };
+
+const LOCAL_APP_DATA_ENVIRONMENT_VARIABLE: &str = "LOCALAPPDATA";
+const CODEX_TOOLS_DATA_DIRECTORY: &str = "CodexTools";
+const ADMINISTRATOR_PROFILE_DIRECTORY: &str = "CodexAdminProfile";
+const ELEVATED_DESKTOP_STARTUP_TIMEOUT: Duration = Duration::from_secs(45);
+const ELEVATED_DESKTOP_POLL_INTERVAL: Duration = Duration::from_millis(250);
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -31,6 +41,8 @@ pub struct CodexStatusResponse {
     pub checked_paths: Vec<String>,
     pub processes: Vec<CodexProcessResponse>,
     pub priority_stabilization: PriorityStabilizationSnapshot,
+    pub package_allows_elevation: Option<bool>,
+    pub elevation_diagnostic: Option<String>,
 }
 
 #[derive(Serialize)]
@@ -65,36 +77,18 @@ pub enum CodexProcessElevationResponse {
 #[serde(rename_all = "camelCase")]
 pub struct CodexLaunchResponse {
     pub executable_path: String,
-    pub launch_method: CodexLaunchMethodResponse,
-    pub app_server_elevation_observed: bool,
-    pub fallback_used: bool,
-    pub diagnostic_message: Option<String>,
+    pub process_id: u32,
     pub priority: CodexLaunchPriorityResponse,
     pub priority_stabilization_started: bool,
 }
 
-#[derive(Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct CodexRunAsAdministratorRegistrationResponse {
-    pub registered_executable_paths: Vec<String>,
-    pub scanned_directories: Vec<String>,
-}
-
 pub type CodexCleanupResponse = CodexCleanupReport;
+pub type CodexUninstallResponse = CodexUninstallReport;
 
 #[derive(Serialize)]
 pub enum CodexLaunchPriorityResponse {
     High,
 }
-
-#[derive(Serialize)]
-pub enum CodexLaunchMethodResponse {
-    ElevatedScheduledTask,
-    ShellExecuteRunAs,
-}
-
-const CODEX_APP_SERVER_ELEVATION_POLL_ATTEMPTS: usize = 16;
-const CODEX_APP_SERVER_ELEVATION_POLL_INTERVAL: Duration = Duration::from_millis(500);
 
 #[tauri::command]
 pub fn get_codex_status(
@@ -103,6 +97,13 @@ pub fn get_codex_status(
     let installation = locate_codex_installation();
     let checked_paths = installation.checked_paths_as_strings();
     let executable_path = installation.executable_path_as_string();
+    let (package_allows_elevation, elevation_diagnostic) = match installation.executable_path() {
+        Some(path) => match codex_package_allows_elevation(path) {
+            Ok(allowed) => (Some(allowed), None),
+            Err(error) => (None, Some(error)),
+        },
+        None => (None, None),
+    };
     let priority_stabilization = priority_stabilization.snapshot().map_err(|error| {
         CommandError::new(
             CommandErrorCode::InvalidState,
@@ -133,43 +134,27 @@ pub fn get_codex_status(
         checked_paths,
         processes,
         priority_stabilization,
+        package_allows_elevation,
+        elevation_diagnostic,
     })
 }
 
 #[tauri::command]
-pub fn open_codex(
+pub async fn open_codex(
     priority_stabilization: State<'_, PriorityStabilizationStore>,
 ) -> Result<CodexLaunchResponse, CommandError> {
-    launch_codex_with_high_priority(priority_stabilization.inner().clone())
-}
+    let priority_stabilization = priority_stabilization.inner().clone();
 
-#[tauri::command]
-pub fn register_codex_run_as_administrator()
--> Result<CodexRunAsAdministratorRegistrationResponse, CommandError> {
-    let inventory = collect_codex_executable_inventory();
-    if inventory.executable_paths().is_empty() {
-        return Err(CommandError::new(
-            CommandErrorCode::CodexNotFound,
-            "No Codex executable was found to register as administrator.",
-        ));
-    }
-
-    for executable_path in inventory.executable_paths() {
-        register_run_as_administrator(executable_path).map_err(|error| {
-            CommandError::new(
-                CommandErrorCode::WindowsApiFailed,
-                format!(
-                    "Failed to save administrator mode for {}: {error}",
-                    executable_path.to_string_lossy()
-                ),
-            )
-        })?;
-    }
-
-    Ok(CodexRunAsAdministratorRegistrationResponse {
-        registered_executable_paths: inventory.executable_paths_as_strings(),
-        scanned_directories: inventory.scanned_directories_as_strings(),
+    tauri::async_runtime::spawn_blocking(move || {
+        launch_codex_with_high_priority(priority_stabilization)
     })
+    .await
+    .map_err(|error| {
+        CommandError::new(
+            CommandErrorCode::InvalidState,
+            format!("Failed to join the Codex launch task: {error}"),
+        )
+    })?
 }
 
 #[tauri::command]
@@ -196,6 +181,30 @@ pub fn clean_codex_workspace() -> Result<CodexCleanupResponse, CommandError> {
     })
 }
 
+#[tauri::command]
+pub fn uninstall_codex_product() -> Result<CodexUninstallResponse, CommandError> {
+    let running_processes = inspect_running_codex_processes().map_err(|error| {
+        CommandError::new(
+            CommandErrorCode::WindowsApiFailed,
+            format!("Nao foi possivel verificar processos Codex antes da desinstalacao: {error}"),
+        )
+    })?;
+
+    if !running_processes.is_empty() {
+        return Err(CommandError::new(
+            CommandErrorCode::UninstallBlocked,
+            "Feche o Codex e o ChatGPT Desktop antes de desinstalar e apagar todos os dados.",
+        ));
+    }
+
+    uninstall_codex_product_data().map_err(|error| {
+        CommandError::new(
+            CommandErrorCode::UninstallFailed,
+            format!("Falha ao desinstalar e apagar dados do Codex: {error}"),
+        )
+    })
+}
+
 fn launch_codex_with_high_priority(
     priority_stabilization: PriorityStabilizationStore,
 ) -> Result<CodexLaunchResponse, CommandError> {
@@ -206,55 +215,17 @@ fn launch_codex_with_high_priority(
             "Codex executable was not found.",
         )
     })?;
+    let application_user_model_id = codex_desktop_application_user_model_id(executable_path)
+        .map_err(|error| CommandError::new(CommandErrorCode::InvalidState, error))?;
 
-    let launch_result = launch_codex_desktop_via_elevated_scheduled_task(
-        executable_path,
-        CODEX_DO_NOT_DE_ELEVATE_ARGUMENT,
-    );
-    let (launch_method, fallback_used, diagnostic_message) = match launch_result {
-        Ok(launch) => {
-            let message = if launch.stderr.is_empty() {
-                None
-            } else {
-                Some(format!(
-                    "Elevated scheduled task '{}' completed with stderr: {}",
-                    launch.task_name, launch.stderr
-                ))
-            };
+    let profile_directory = administrator_profile_directory()
+        .map_err(|error| CommandError::new(CommandErrorCode::InvalidState, error))?;
 
-            (
-                CodexLaunchMethodResponse::ElevatedScheduledTask,
-                false,
-                message,
-            )
-        }
-        Err(scheduled_task_error) => {
-            launch_as_administrator_with_parameters(executable_path, CODEX_DO_NOT_DE_ELEVATE_ARGUMENT)
-                .map_err(|error| {
-                    CommandError::new(
-                        CommandErrorCode::WindowsApiFailed,
-                        format!(
-                            "Failed to launch Codex through scheduled task ({scheduled_task_error}) and ShellExecute fallback ({error})."
-                        ),
-                    )
-                })?;
+    launch_codex_desktop_as_administrator(&application_user_model_id, &profile_directory)
+        .map_err(|error| CommandError::new(CommandErrorCode::WindowsApiFailed, error))?;
 
-            (
-                CodexLaunchMethodResponse::ShellExecuteRunAs,
-                true,
-                Some(format!(
-                    "Elevated scheduled task failed; ShellExecute runas fallback was used. Scheduled task error: {scheduled_task_error}"
-                )),
-            )
-        }
-    };
-
-    let app_server_elevation_observed = wait_for_elevated_codex_app_server().map_err(|error| {
-        CommandError::new(
-            CommandErrorCode::WindowsApiFailed,
-            format!("Failed to verify Codex app-server elevation: {error}"),
-        )
-    })?;
+    let process_id = wait_for_elevated_codex_desktop_process()
+        .map_err(|error| CommandError::new(CommandErrorCode::WindowsApiFailed, error))?;
 
     start_high_priority_stabilization(priority_stabilization).map_err(|error| {
         CommandError::new(
@@ -265,36 +236,50 @@ fn launch_codex_with_high_priority(
 
     Ok(CodexLaunchResponse {
         executable_path: executable_path.to_string_lossy().into_owned(),
-        launch_method,
-        app_server_elevation_observed,
-        fallback_used,
-        diagnostic_message,
+        process_id,
         priority: CodexLaunchPriorityResponse::High,
         priority_stabilization_started: true,
     })
 }
 
-fn wait_for_elevated_codex_app_server() -> Result<bool, windows::core::Error> {
-    for _ in 0..CODEX_APP_SERVER_ELEVATION_POLL_ATTEMPTS {
-        sleep(CODEX_APP_SERVER_ELEVATION_POLL_INTERVAL);
+fn administrator_profile_directory() -> Result<PathBuf, String> {
+    let local_app_data = env::var_os(LOCAL_APP_DATA_ENVIRONMENT_VARIABLE)
+        .map(PathBuf::from)
+        .filter(|path| path.is_absolute())
+        .ok_or_else(|| "LOCALAPPDATA is unavailable or is not an absolute path.".to_owned())?;
+    let profile_directory = local_app_data
+        .join(CODEX_TOOLS_DATA_DIRECTORY)
+        .join(ADMINISTRATOR_PROFILE_DIRECTORY);
 
-        let app_server_is_elevated =
-            inspect_running_codex_processes()?
-                .into_iter()
-                .any(|process| {
-                    process.elevation == WindowsProcessElevationState::Elevated
-                        && process
-                            .executable_path
-                            .as_deref()
-                            .is_some_and(is_codex_app_server_executable_path)
-                });
+    fs::create_dir_all(&profile_directory).map_err(|error| {
+        format!(
+            "Failed to create the Codex administrator profile {}: {error}",
+            profile_directory.display()
+        )
+    })?;
 
-        if app_server_is_elevated {
-            return Ok(true);
+    Ok(profile_directory)
+}
+
+fn wait_for_elevated_codex_desktop_process() -> Result<u32, String> {
+    let started_at = Instant::now();
+
+    loop {
+        if let Some(process_id) = find_elevated_codex_desktop_process()
+            .map_err(|error| format!("Failed to inspect elevated Codex processes: {error}"))?
+        {
+            return Ok(process_id);
         }
-    }
 
-    Ok(false)
+        if started_at.elapsed() >= ELEVATED_DESKTOP_STARTUP_TIMEOUT {
+            return Err(format!(
+                "Codex did not start an elevated app-server within {} seconds.",
+                ELEVATED_DESKTOP_STARTUP_TIMEOUT.as_secs()
+            ));
+        }
+
+        thread::sleep(ELEVATED_DESKTOP_POLL_INTERVAL);
+    }
 }
 
 impl From<CodexProcessInspection> for CodexProcessResponse {

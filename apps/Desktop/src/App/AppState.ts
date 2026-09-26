@@ -7,6 +7,7 @@ import {
 } from "../Domain/ActionStatus";
 import { INITIAL_APP_SECTION, type AppSection } from "../Domain/AppSection";
 import type { CodexCleanupReport } from "../Domain/CodexCleanup";
+import type { CodexUninstallReport } from "../Domain/CodexUninstall";
 import {
   CHECKING_CODEX_STATUS,
   UNCHECKED_CODEX_STATUS,
@@ -32,6 +33,8 @@ export type AppState = Readonly<{
   codexStatus: CodexStatus;
   consoleMessages: readonly ConsoleMessage[];
   runtimeStatus: RuntimeStatus;
+  uninstallConfirmationArmed: boolean;
+  uninstallReport: CodexUninstallReport | null;
 }>;
 
 export const INITIAL_APP_STATE: AppState = {
@@ -41,6 +44,8 @@ export const INITIAL_APP_STATE: AppState = {
   codexStatus: UNCHECKED_CODEX_STATUS,
   consoleMessages: createCodexConsoleMessages(UNCHECKED_CODEX_STATUS),
   runtimeStatus: WAITING_RUNTIME_STATUS,
+  uninstallConfirmationArmed: false,
+  uninstallReport: null,
 };
 
 export function setCheckingCodexStatus(state: AppState): AppState {
@@ -89,6 +94,8 @@ export function setActiveSection(state: AppState, activeSection: AppSection): Ap
   return {
     ...state,
     activeSection,
+    uninstallConfirmationArmed:
+      activeSection === "Uninstall" ? state.uninstallConfirmationArmed : false,
   };
 }
 
@@ -99,6 +106,27 @@ export function setCleanupReport(
   return {
     ...state,
     cleanupReport,
+  };
+}
+
+export function setUninstallConfirmationArmed(
+  state: AppState,
+  uninstallConfirmationArmed: boolean
+): AppState {
+  return {
+    ...state,
+    uninstallConfirmationArmed,
+  };
+}
+
+export function setUninstallReport(
+  state: AppState,
+  uninstallReport: CodexUninstallReport
+): AppState {
+  return {
+    ...state,
+    uninstallConfirmationArmed: false,
+    uninstallReport,
   };
 }
 

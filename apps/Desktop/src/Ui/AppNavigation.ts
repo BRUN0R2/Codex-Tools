@@ -1,4 +1,9 @@
 import type { AppSection } from "../Domain/AppSection";
+import {
+  createProcessesIcon,
+  createCleanupIcon,
+  createUninstallIcon,
+} from "./ApplicationIcons";
 
 export type AppNavigationProps = Readonly<{
   activeSection: AppSection;
@@ -6,19 +11,24 @@ export type AppNavigationProps = Readonly<{
 }>;
 
 const NAVIGATION_ITEMS: readonly Readonly<{
-  description: string;
+  icon: () => SVGSVGElement;
   label: string;
   section: AppSection;
 }>[] = [
   {
-    description: "Execucao e processos",
-    label: "Admin",
-    section: "Admin",
+    icon: createProcessesIcon,
+    label: "Processos",
+    section: "Processes",
   },
   {
-    description: "Dados locais",
+    icon: createCleanupIcon,
     label: "Limpeza",
     section: "Cleanup",
+  },
+  {
+    icon: createUninstallIcon,
+    label: "Desinstalacao",
+    section: "Uninstall",
   },
 ];
 
@@ -28,8 +38,7 @@ export function createAppNavigation({
 }: AppNavigationProps): HTMLElementTagNameMap["nav"] {
   const navigation = document.createElement("nav");
   navigation.className = "AppNavigation";
-  navigation.setAttribute("aria-label", "Secoes");
-  navigation.setAttribute("role", "tablist");
+  navigation.setAttribute("aria-label", "Navegacao principal");
 
   for (const item of NAVIGATION_ITEMS) {
     const button = document.createElement("button");
@@ -37,15 +46,13 @@ export function createAppNavigation({
     button.className =
       isActive ? "AppNavigationButton IsActive" : "AppNavigationButton";
     button.type = "button";
-    const label = document.createElement("strong");
+    const label = document.createElement("span");
     label.textContent = item.label;
 
-    const description = document.createElement("span");
-    description.textContent = item.description;
-
-    button.append(label, description);
-    button.setAttribute("aria-selected", isActive ? "true" : "false");
-    button.setAttribute("role", "tab");
+    button.append(item.icon(), label);
+    if (isActive) {
+      button.setAttribute("aria-current", "page");
+    }
     button.addEventListener("click", () => {
       onSelectSection(item.section);
     });

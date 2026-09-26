@@ -37,17 +37,6 @@ pub fn relaunch_current_process_as_administrator_if_needed() -> Result<bool, Str
     Ok(true)
 }
 
-pub fn launch_as_administrator_with_parameters(
-    executable_path: &Path,
-    parameters: &str,
-) -> Result<(), Error> {
-    shell_execute(
-        executable_path,
-        Some(parameters),
-        Some(RUN_AS_ADMINISTRATOR_VERB),
-    )
-}
-
 fn shell_execute(
     executable_path: &Path,
     parameters: Option<&str>,
@@ -90,7 +79,7 @@ fn current_process_parameters() -> String {
         .join(" ")
 }
 
-fn quote_windows_argument(value: &str) -> String {
+pub(crate) fn quote_windows_argument(value: &str) -> String {
     if !value.is_empty()
         && !value
             .chars()
