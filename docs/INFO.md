@@ -1,8 +1,8 @@
-# INFO - Codex Tools
+# Technical Notes — Codex Tools
 
-Codex Tools sera reconstruido como um utilitario moderno para Windows.
+Codex Tools is being rebuilt as a modern Windows utility.
 
-## Stack confirmada
+## Confirmed stack
 
 - Tauri `2.11.6`.
 - Tauri API `2.11.1`.
@@ -10,139 +10,76 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Tauri Build `2.6.3`.
 - Vite `8.3.1`.
 - TypeScript `7.0.2`.
-- Rust `1.98.0` (instalacao Windows usada na validacao atual).
-- Node.js `26.10.0` (instalacao Windows usada na validacao).
-- npm `12.1.0` (instalacao Windows usada na validacao).
+- Rust `1.98.0` (Windows installation used for current validation).
+- Node.js `26.10.0` (Windows installation used for validation).
+- npm `12.1.0` (Windows installation used for validation).
 - CMake `4.3.2`.
 - MSVC `14.51`.
 
-## Decisoes
+## Decisions
 
-- Usar Tauri 2 com Vanilla TypeScript para evitar framework sem necessidade real.
-- Manter a biblioteca Rust como `rlib` padrao, ligada ao executavel Windows;
-  nao gerar bibliotecas `cdylib` e `staticlib` destinadas a outros alvos.
-- Usar npm e `package-lock.json` para instalar dependencias de forma reproduzivel.
-- O launcher valida Node.js, npm e Cargo para ambos os modos. Se o `PATH` do
-  terminal estiver desatualizado, procura Node.js com npm em
-  `%ProgramFiles%\nodejs`; se necessario, procura `npm.cmd` em `%APPDATA%\npm`.
-  Esses diretorios entram apenas no processo atual e nos filhos do Tauri.
-- Em um checkout sem os binarios locais do projeto, o launcher executa `npm ci`.
-- Manter o app desktop em `apps/Desktop`.
-- Manter frontend, backend Tauri e futuro core nativo isolados por responsabilidade.
-- Detectar a ponte nativa com `isTauri()` antes de executar comandos. O servidor
-  Vite aberto em um navegador apresenta uma previa somente da interface; acoes
-  nativas ficam desativadas e o app nao tenta chamar `invoke` sem Tauri.
-- Usar convencoes de modulo do Rust no backend Tauri quando exigidas pelo toolchain.
-- Manter `docs/RULES.md` alinhado a Rust, TypeScript, Tauri e APIs Windows isoladas.
-- O fluxo principal usa prioridade alta fixa para todos os processos Codex.
-- Prioridade em tempo real permanece fora do produto.
-- Detectar o desktop Codex pelos pacotes versionados em `Program Files\WindowsApps`,
-  incluindo o executavel atual `ChatGPT.exe` e o nome legado `Codex.exe`.
-- Detectar a CLI independente em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`
-  e nos diretorios do `PATH`, sem exigir que o Desktop esteja instalado.
-- Abrir a CLI com `CreateProcessW`, `CREATE_NEW_CONSOLE` e `HIGH_PRIORITY_CLASS`,
-  sem `STARTF_USESTDHANDLES`. O Codex Tools e uma aplicacao grafica Windows e nao
-  tem canais de console confiaveis para transmitir a CLI. O novo console fornece
-  entrada e saida proprias; o token elevado e herdado, e a prioridade comeca alta
-  antes da primeira verificacao do PID. Passar `--no-daemon` evita a recusa do
-  daemon compartilhado em clientes elevados. Filtrar `TERM=dumb` do ambiente
-  filho permite que a CLI detecte o console Windows quando herdou essa variavel
-  de uma sessao Codex. Iniciar no perfil do usuario e continuar monitorando o
-  PID para confirmar que a CLI permanece ativa.
-- A desinstalacao continua limitada ao pacote Desktop e dados compartilhados;
-  nao remove a instalacao independente do executavel CLI.
-- Detectar binarios primarios Codex em pacotes versionados, runtimes hashados em
-  `LOCALAPPDATA` e pelo `PATH`.
-- Codex Tools deve pedir elevacao de administrador antes da janela abrir.
-- A release embute manifest Windows com `requireAdministrator`.
-- O token elevado ativa `SeDebugPrivilege` e `SeIncreaseBasePriorityPrivilege` para gerenciar processos Codex.
-- A janela usa CSP explicito porque o app roda elevado.
-- Abrir o desktop pelo item `shell:AppsFolder` do AUMID
-  `OpenAI.Codex_2p2nqsd0c76g0!App`, com `ShellExecuteExW`, verbo `runas`,
-  `--do-not-de-elevate` e um perfil administrativo persistente em
-  `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`, sem encerrar a sessao existente.
-- O pacote MSIX `OpenAI.Codex` instalado em 2026-09-26 (versao `26.924.2738.0`)
-  declara `runFullTrust`, mas nao `allowElevation`. Testes com `shell:AppsFolder`
-  criaram `ChatGPT.exe` com identidade MSIX e `codex.exe app-server` elevado,
-  enquanto a execucao direta do `.exe` falhou sem identidade de pacote.
-  Portanto, nao inferir impossibilidade de elevacao apenas pelo manifesto;
-  verificar os tokens dos processos reais.
-  Referencias: https://learn.microsoft.com/windows/apps/package-and-deploy/app-capability-declarations#restricted-capabilities
-  e https://learn.microsoft.com/windows/win32/api/appmodel/nf-appmodel-getpackagefullname
-- Inspecionar `AppxManifest.xml` do pacote selecionado como diagnostico, sem
-  usar `allowElevation` como bloqueio. O estado de elevacao real e exibido
-  individualmente para cada processo e o lancamento exige app-server elevado.
-- Nao executar o binario em `WindowsApps` por `CreateProcess` nem por tarefa
-  agendada. Esse caminho termina com `0x80070005` e nenhum processo nasce, entao
-  a prioridade nao tem sessao para estabilizar. A tarefa tambem nascia com
-  prioridade 7, abaixo do normal.
-- A tarefa agendada elevada nao e mais criada. A desinstalacao ainda remove
-  `OpenAI Codex Desktop Elevated` e `OpenAI Codex Elevated`.
-- A estabilizacao de prioridade fica pronta quando existem processos desktop e
-  app-server e todos os processos Codex detectados estao em prioridade alta. Elevacao e
-  informada separadamente; nao e requisito para aplicar prioridade alta.
-- Para a CLI, a estabilizacao fica pronta quando o PID iniciado continua ativo e
-  todos os processos Codex detectados estao em prioridade alta.
-- A falha de prioridade nomeia a condicao ausente ou o PID que recusou a
-  prioridade.
-- A estabilizacao de prioridade roda em segundo plano para manter a interface responsiva.
-- O status da estabilizacao deve expor `Idle`, `Running`, `Succeeded` e `Failed`.
-- O status de runtime `pronto` exige ao menos um processo Codex e todos os
-  processos detectados em prioridade alta.
-- Mostrar processos Codex em execucao com PID, prioridade atual e estado de administrador.
-- Elevacao `normal` no console indica token normal. Processos auxiliares do
-  Chromium podem ser normais mesmo com desktop e app-server elevados.
-- Manter automacao generica fora da interface simplificada.
-- O seletor da aba `Processos` escolhe Desktop ou CLI para um unico botao
-  `Abrir como administrador` e para o botao `Verificar`.
-- A acao `Abrir como administrador` nao encerra processos Codex existentes.
-  O perfil separado evita o bloqueio de instancia unica da sessao corrente.
-- Inspecionar app-servers executados a partir do pacote desktop e dos runtimes
-  hashados em `LOCALAPPDATA` como processos `codex.exe`.
-- Manter compatibilidade com a pasta versionada dinamica
-  `OpenAI.Codex_*__2p2nqsd0c76g0`.
-- Descobrir catalogos de idioma com `import.meta.glob` em
-  `apps/Desktop/src/i18n/locales/*.json`. O catalogo `en.json` e a referencia e
-  fallback; `pt-BR.json` e selecionado automaticamente quando o idioma do WebView
-  corresponde a portugues.
-- Validar locale canonico, chaves conhecidas e placeholders ao carregar os
-  catalogos. Chaves ausentes usam ingles; adicionar outro idioma exige somente
-  um novo JSON com seu nome de locale.
-- Formatar numeros e pluralizacao com `Intl` no locale escolhido.
-- A aba `Configuracoes` permite selecionar um catalogo instalado ou deteccao
-  automatica; a escolha e aplicada imediatamente e salva em `localStorage` sob
-  `codex-tools.locale`. Catalogos removidos voltam a deteccao automatica.
-- Usar `rusqlite` com SQLite embutido para limpar o banco local do Codex sem
-  depender de `sqlite3.exe` instalado no Windows.
-- Usar `serde_json` para limpar o estado global do Codex com parser JSON real,
-  evitando manipulacao textual fragil.
-- Bloquear a limpeza geral quando processos Codex estiverem abertos para evitar
-  disputa de escrita no SQLite e no estado local.
-- Preservar credenciais, configuracoes, skills e plugins instalados; limpar
-  conversas, sessoes, anexos, temporarios, cache local e bancos legados.
-- Separar a aba `Desinstalacao` da limpeza parcial: remocao total e irreversivel
-  de dados Codex/ChatGPT Desktop, com confirmacao em dois passos na interface.
-- A desinstalacao remove home `.codex`, `LOCALAPPDATA\OpenAI\Codex`, dados do
-  pacote MSIX `OpenAI.Codex_*`, `ProgramData\OpenAI\Codex`, cache
-  `.cache\codex-runtimes`, workspace `Documents\Codex`, tarefa elevada
-  `OpenAI Codex Elevated`, entradas AppCompat `RUNASADMIN` de caminhos Codex e o
-  pacote MSIX via `Remove-AppxPackage`.
-- Bloquear a desinstalacao enquanto processos Codex estiverem abertos.
-- Preservar pastas `OpenAI` pai apenas quando ainda contiverem outros dados.
+- Use Tauri 2 with Vanilla TypeScript to avoid an unnecessary framework.
+- Keep the Rust library in its default `rlib` form, linked to the Windows executable; do not generate `cdylib` or `staticlib` libraries for other targets.
+- Use npm and `package-lock.json` for reproducible dependency installation.
+- The launcher validates Node.js, npm, and Cargo in both modes. If the terminal's `PATH` is stale, it looks for Node.js with npm in `%ProgramFiles%\nodejs`; if needed, it also looks for `npm.cmd` in `%APPDATA%\npm`. These directories are added only to the current process and its Tauri child processes.
+- In a checkout without the project's local binaries, the launcher runs `npm ci`.
+- Keep the desktop app in `apps/Desktop`.
+- Keep the frontend, Tauri backend, and future native core isolated by responsibility.
+- Detect the native bridge with `isTauri()` before running commands. Vite opened in a browser provides a UI-only preview; native actions are disabled, and the app does not call `invoke` without Tauri.
+- Use Rust module conventions in the Tauri backend where required by the toolchain.
+- Keep `docs/RULES.md` aligned with Rust, TypeScript, Tauri, and isolated Windows APIs.
+- The main flow uses fixed high priority for all Codex processes.
+- Realtime priority remains outside the product.
+- Detect Codex Desktop in versioned packages under `Program Files\WindowsApps`, including the current `ChatGPT.exe` executable and the legacy name `Codex.exe`.
+- Detect the standalone CLI at `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` and in `PATH` directories, without requiring Desktop to be installed.
+- Open the CLI with `CreateProcessW`, `CREATE_NEW_CONSOLE`, and `HIGH_PRIORITY_CLASS`, without `STARTF_USESTDHANDLES`. Codex Tools is a Windows GUI application and has no reliable console channels for relaying the CLI. The new console provides its own input and output; it inherits the elevated token, and its priority is high before the first PID check. Passing `--no-daemon` avoids rejection by the shared daemon when elevated clients connect. Filtering `TERM=dumb` from the child environment lets the CLI detect the Windows console when it inherited that variable from a Codex session. Start in the user's profile and keep monitoring the PID to confirm that the CLI remains active.
+- Uninstallation remains limited to the Desktop package and shared data; it does not remove the standalone CLI executable.
+- Detect primary Codex binaries in versioned packages, hashed runtimes under `LOCALAPPDATA`, and through `PATH`.
+- Codex Tools must request administrator elevation before its window opens.
+- The release embeds a Windows manifest with `requireAdministrator`.
+- The elevated token enables `SeDebugPrivilege` and `SeIncreaseBasePriorityPrivilege` to manage Codex processes.
+- The window uses an explicit CSP because the app runs elevated.
+- Open Desktop through the `shell:AppsFolder` entry for AUMID `OpenAI.Codex_2p2nqsd0c76g0!App`, using `ShellExecuteExW`, the `runas` verb, `--do-not-de-elevate`, and a persistent administrative profile at `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`, without closing the existing session.
+- The `OpenAI.Codex` MSIX package installed on 2026-09-26 (version `26.924.2738.0`) declares `runFullTrust`, but not `allowElevation`. Tests using `shell:AppsFolder` created `ChatGPT.exe` with MSIX identity and an elevated `codex.exe app-server`, while direct execution of the `.exe` failed without package identity. Therefore, do not infer that elevation is impossible from the manifest alone; inspect the actual process tokens.
+  References: [Restricted capabilities](https://learn.microsoft.com/windows/apps/package-and-deploy/app-capability-declarations#restricted-capabilities) and [GetPackageFullName function](https://learn.microsoft.com/windows/win32/api/appmodel/nf-appmodel-getpackagefullname).
+- Inspect the selected package's `AppxManifest.xml` for diagnostics, without using `allowElevation` as a blocker. Show the actual elevation state for each process individually, and require an elevated app-server for launch confirmation.
+- Do not run the binary under `WindowsApps` with `CreateProcess` or a scheduled task. That path ends with `0x80070005` and starts no process, so there is no session whose priority can be stabilized. The scheduled task also started at priority 7, below normal.
+- The elevated scheduled task is no longer created. Uninstallation still removes `OpenAI Codex Desktop Elevated` and `OpenAI Codex Elevated`.
+- Priority stabilization is ready when Desktop and app-server processes exist and all detected Codex processes have high priority. Report elevation separately; it is not required to apply high priority.
+- For the CLI, stabilization is ready when the started PID remains active and all detected Codex processes have high priority.
+- Priority failures name the unmet condition or the PID that rejected the priority change.
+- Run priority stabilization in the background to keep the interface responsive.
+- Stabilization status must expose `Idle`, `Running`, `Succeeded`, and `Failed`.
+- Runtime status `Ready` requires at least one Codex process and high priority for every detected process.
+- Show running Codex processes with PID, current priority, and administrator status.
+- `Normal` elevation in the console means the process has a normal token. Chromium helper processes may be normal even when Desktop and app-server are elevated.
+- Keep generic automation out of the simplified interface.
+- The `Processes` tab selector chooses Desktop or CLI for one `Open as administrator` button and one `Verify` button.
+- The `Open as administrator` action does not close existing Codex processes. A separate profile avoids the single-instance lock of the current session.
+- Inspect app-servers running from the Desktop package and hashed runtimes under `LOCALAPPDATA` as `codex.exe` processes.
+- Maintain compatibility with the dynamic versioned folder `OpenAI.Codex_*__2p2nqsd0c76g0`.
+- Discover language catalogs with `import.meta.glob` in `apps/Desktop/src/i18n/locales/*.json`. The `en.json` catalog is the reference and fallback; `pt-BR.json` is selected automatically when the WebView language is Portuguese.
+- Validate canonical locale names, known keys, and placeholders when loading catalogs. Missing keys use English; adding another language requires only a new JSON file named for its locale.
+- Format numbers and plurals with `Intl` for the selected locale.
+- The `Settings` tab lets users select an installed catalog or automatic detection. Apply the choice immediately and save it in `localStorage` under `codex-tools.locale`. Removed catalogs revert to automatic detection.
+- Use `rusqlite` with embedded SQLite to clean the local Codex database without requiring `sqlite3.exe` on Windows.
+- Use `serde_json` to clean global Codex state with a real JSON parser, avoiding fragile text manipulation.
+- Block general cleanup while Codex processes are open to avoid write conflicts in SQLite and local state.
+- Preserve credentials, settings, installed skills, and plugins; clean conversations, sessions, attachments, temporary files, local caches, and legacy databases.
+- Separate the `Uninstall` tab from partial cleanup: full, irreversible removal of Codex/ChatGPT Desktop data, with two-step confirmation in the interface.
+- Uninstallation removes the `.codex` home, `LOCALAPPDATA\OpenAI\Codex`, `OpenAI.Codex_*` MSIX data, `ProgramData\OpenAI\Codex`, `.cache\codex-runtimes`, the `Documents\Codex` workspace, the `OpenAI Codex Elevated` task, `RUNASADMIN` AppCompat entries for Codex paths, and the MSIX package through `Remove-AppxPackage`.
+- Block uninstallation while Codex processes are open.
+- Preserve parent `OpenAI` folders only when they still contain other data.
 
-## Validacao atual
+## Current validation
 
 - `npm run build`.
-- `npm run test:i18n` valida selecao exata, correspondencia por familia de idioma
-  e fallback para ingles.
+- `npm run test:i18n` validates exact selection, language-family matching, and English fallback.
 - `cargo check --manifest-path apps/Desktop/src-tauri/Cargo.toml`.
 - `cargo clippy --manifest-path apps/Desktop/src-tauri/Cargo.toml -- -D warnings`.
-- `cargo test --manifest-path apps/Desktop/src-tauri/Cargo.toml --lib` valida os
-  testes sem executar o aplicativo. `cargo test` completo tenta executar o
-  binario Tauri com manifest `requireAdministrator` e falha com erro Windows 740
-  em um terminal sem elevacao.
-- `npm run tauri build`, que liga `tauri/custom-protocol` e embute `dist`.
-- `cargo build --release` sem essa feature continua em modo de desenvolvimento e abre `http://localhost:1420`. Sem o servidor do Vite, o WebView mostra `ERR_CONNECTION_REFUSED`.
+- `cargo test --manifest-path apps/Desktop/src-tauri/Cargo.toml --lib` validates tests without running the app. A full `cargo test` attempts to run the Tauri binary with a `requireAdministrator` manifest and fails with Windows error 740 from a non-elevated terminal.
+- `npm run tauri build`, which enables `tauri/custom-protocol` and embeds `dist`.
+- `cargo build --release` without that feature remains in development mode and opens `http://localhost:1420`. Without the Vite server, the WebView shows `ERR_CONNECTION_REFUSED`.
 - `cargo fmt --manifest-path apps/Desktop/src-tauri/Cargo.toml -- --check`.
 - `npm audit --audit-level=high`.
-- Manifest da release configurado por `WindowsAppManifest.xml` e validado pelo build Tauri.
+- The release manifest is configured through `WindowsAppManifest.xml` and validated by the Tauri build.

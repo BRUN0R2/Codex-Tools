@@ -1,47 +1,49 @@
 # Codex Tools Desktop
 
-Aplicativo Windows em Tauri para o Codex Tools.
+Windows Tauri application for Codex Tools.
 
-## Preparacao do ambiente
+## Environment setup
 
-- Instale Node.js com npm (preferencialmente a versao LTS) e Rust com Cargo.
-- Instale os [pre-requisitos do Tauri no Windows](https://v2.tauri.app/start/prerequisites/), incluindo as ferramentas de compilacao C++ da Microsoft e WebView2.
-- Confirme em um novo terminal: `node --version`, `npm.cmd --version` e `cargo --version`.
+- Install Node.js with npm (preferably the LTS version) and Rust with Cargo.
+- Install the [Tauri prerequisites for Windows](https://v2.tauri.app/start/prerequisites/), including Microsoft C++ build tools and WebView2.
+- In a new terminal, verify `node --version`, `npm.cmd --version`, and `cargo --version`.
 
-Na raiz do repositorio, execute `codex-tools.cmd` e escolha modo dev ou release. O launcher verifica as ferramentas antes de iniciar. Se o terminal estiver com um `PATH` antigo, ele encontra a instalacao oficial em `%ProgramFiles%\nodejs`; se necessario, procura `npm.cmd` tambem em `%APPDATA%\npm`. Em um checkout sem os binarios locais do projeto, executa `npm ci`. A alteracao do `PATH` vale apenas para o processo do launcher e seus filhos, incluindo os comandos de preparacao do Tauri.
+From the repository root, run `codex-tools.cmd` and choose development or release mode. The launcher checks the required tools before starting. If the terminal has an outdated `PATH`, it finds the official installation under `%ProgramFiles%\nodejs`; if needed, it also looks for `npm.cmd` under `%APPDATA%\npm`. In a checkout without the project's local binaries, it runs `npm ci`. The `PATH` change applies only to the launcher process and its children, including Tauri setup commands.
 
-## Codex Desktop e CLI
+## Codex Desktop and CLI
 
-A aba `Processos` detecta o pacote Codex Desktop e a instalacao independente do Codex CLI. Um seletor `App` alterna entre Desktop e CLI; os botoes `Verificar` e `Abrir como administrador` atuam somente sobre a escolha atual. A CLI e procurada em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` e nos diretorios do `PATH`. Ao abrir a CLI, o Windows cria uma nova janela de console com canais de entrada e saida proprios, a partir da pasta do perfil do usuario, e aplica prioridade alta desde o inicio do processo. A CLI recebe `--no-daemon`, pois o daemon compartilhado recusa clientes iniciados com privilegios de administrador. O lancamento tambem remove `TERM=dumb` do ambiente filho, quando presente, para permitir que a interface de terminal detecte o console Windows. O token elevado do Codex Tools e herdado pela CLI. O monitor acompanha o PID iniciado e confirma que ele continua ativo e em alta prioridade.
+The `Processes` tab detects the Codex Desktop package and the standalone Codex CLI installation. One `App` selector switches between Desktop and CLI; the `Verify` and `Open as administrator` buttons act on the current selection. The CLI is searched for at `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` and in `PATH` directories. When opened, the CLI starts in a new Windows console with its own input and output channels, from the user's profile directory, and receives high priority as soon as the process is created. The CLI receives `--no-daemon` because the shared daemon rejects clients started with administrator privileges. The launcher also removes `TERM=dumb` from the child environment, when present, so the terminal interface can detect the Windows console. The CLI inherits Codex Tools' elevated token. The monitor tracks the started PID and confirms that it remains active and at high priority.
 
-A limpeza geral usa os dados compartilhados em `.codex` e bloqueia enquanto qualquer processo Codex estiver aberto, incluindo a CLI. A desinstalacao existente remove o pacote Desktop e dados Codex compartilhados; ela nao remove o executavel independente instalado pelo Codex CLI.
+General cleanup operates on shared data under `.codex` and is blocked while any Codex process, including the CLI, is open. Uninstallation removes the Desktop package and shared Codex data; it does not remove the standalone executable installed by Codex CLI.
 
-## Idiomas
+## Languages
 
-Em `Configuracoes > Idioma`, escolha `Automatico (idioma do sistema)`, `English` ou `Portugues (Brasil)`. A mudanca aparece imediatamente e fica salva no armazenamento local do WebView. No modo automatico, a interface escolhe o melhor idioma disponivel a partir das preferencias do WebView. A busca tenta uma correspondencia exata, depois outra variante do mesmo idioma e usa ingles quando nao ha catalogo compativel. Uma preferencia salva para um catalogo removido volta ao modo automatico. Chaves ausentes em um catalogo usam a traducao inglesa.
+Under `Settings > Language`, choose `Automatic (system language)`, `English`, or `Português (Brasil)`. The change takes effect immediately and is saved in the WebView's local storage. In automatic mode, the interface selects the best available language from the WebView preferences. It tries an exact match first, then another variant of the same language, and uses English when no compatible catalog is available. A saved preference for a removed catalog returns to automatic mode. Missing keys in a catalog use the English translation.
 
-Para adicionar outro idioma, crie somente `src/i18n/locales/<locale-canonico>.json`. O arquivo inclui `locale`, `name`, `direction` e `messages`; `locale` precisa corresponder ao nome canonico do arquivo, como `fr-CA`. O carregador descobre os JSON automaticamente e valida as chaves e os placeholders contra `en.json`. Nao e necessario registrar o idioma em outro arquivo ou alterar codigo.
+To add another language, create only `src/i18n/locales/<canonical-locale>.json`. The file contains `locale`, `name`, `direction`, and `messages`; `locale` must match the file's canonical locale name, such as `fr-CA`. The loader discovers JSON files automatically and validates keys and placeholders against `en.json`. There is no need to register the language in another file or change code.
 
-## Elevacao e prioridade
+## Elevation and priority
 
-O Codex Tools solicita permissao de administrador para ajustar a prioridade dos processos Codex. Ao selecionar `Codex Desktop`, o botao `Abrir como administrador` usa a entrada `shell:AppsFolder` do pacote instalado com o verbo `runas` e os argumentos `--do-not-de-elevate` e `--user-data-dir`. O perfil administrativo fica em `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`; a primeira abertura pode exigir login nesse perfil. A instancia atual permanece aberta.
+Codex Tools requests administrator permission to adjust the priority of Codex processes. When `Codex Desktop` is selected, the `Open as administrator` button uses the installed package's `shell:AppsFolder` entry with the `runas` verb and the `--do-not-de-elevate` and `--user-data-dir` arguments. The administrative profile is stored at `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`; the first launch may require signing in to that profile. The current instance remains open.
 
-O Codex Tools so informa sucesso quando encontra um `ChatGPT.exe` elevado do pacote com `codex.exe app-server` elevado como filho. Depois estabiliza a prioridade alta e mostra o token de cada processo no console. Alguns processos auxiliares do Chromium podem permanecer com token normal.
+Codex Tools reports success only when it finds an elevated `ChatGPT.exe` from the package with an elevated `codex.exe app-server` child. It then stabilizes high priority and shows each process token in the console. Some Chromium helper processes may retain a normal token.
 
-Na versao MSIX `26.924.2738.0`, a execucao direta de `ChatGPT.exe` com `runas` gerou token elevado sem identidade de pacote e terminou com `O processo nao tem identificador de pacote`. A entrada `shell:AppsFolder` preservou a identidade MSIX e iniciou uma sessao administrativa funcional. O manifesto dessa versao nao declara `allowElevation`; esse campo isolado nao descreve o resultado real da ativacao por `shell:AppsFolder` nesta instalacao.
+With MSIX version `26.924.2738.0`, directly running `ChatGPT.exe` with `runas` created an elevated token without package identity and ended with `The process has no package identity` (`O processo nao tem identificador de pacote`). The `shell:AppsFolder` entry preserved the MSIX identity and started a working administrative session. That version's manifest does not declare `allowElevation`; this field alone does not describe the actual result of activation through `shell:AppsFolder` on this installation.
 
-Para repetir os testes sem encerrar a instancia atual, use `scripts/probe-codex-elevation.ps1` com `-InspectOnly` ou com `-LaunchMode AppsFolderRunAsArgs -IsolatedProfile`. O script mede token e identidade de pacote dos processos novos; `RunAs` usa o executavel direto apenas como comparacao diagnostica.
+To repeat the tests without closing the current instance, use `scripts/probe-codex-elevation.ps1` with `-InspectOnly` or with `-LaunchMode AppsFolderRunAsArgs -IsolatedProfile`. The script measures the token and package identity of new processes; `RunAs` uses the direct executable only as a diagnostic comparison.
 
-## Comandos diretos
+## Direct commands
 
-Dentro de `apps/Desktop`:
+From `apps/Desktop`:
 
-- `npm ci`
-- `npm run test:i18n`
-- `npm run build`
-- `npm run tauri dev`
-- `npm run tauri build`
+```powershell
+npm ci
+npm run test:i18n
+npm run build
+npm run tauri dev
+npm run tauri build
+```
 
-`npm run build` tambem valida os tipos TypeScript e gera o frontend com todos os catalogos JSON descobertos.
+`npm run build` also validates TypeScript types and builds the frontend with all discovered JSON catalogs.
 
-Abrir o servidor Vite diretamente em um navegador mostra uma previa da interface. A previa nao executa comandos nativos: verificacao, abertura, limpeza e desinstalacao ficam indisponiveis. Use `npm run tauri dev` ou a build Windows para validar essas acoes.
+Opening the Vite server directly in a browser shows a UI preview. The preview does not run native commands: verification, launch, cleanup, and uninstallation are unavailable. Use `npm run tauri dev` or the Windows build to validate these actions.

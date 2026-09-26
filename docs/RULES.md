@@ -1,287 +1,287 @@
-# Constituição do Projeto
+# Project Constitution
 
-## Regra Suprema
+## Supreme Rule
 
-O Codex / IA deve seguir todas as regras do projeto rigorosamente e sem exceção.
+Codex / AI must follow all project rules rigorously and without exception.
 
-Nenhuma implementação, otimização, abstração, refatoração, dependência, atalho ou decisão arquitetural pode violar as regras definidas neste documento.
+No implementation, optimization, abstraction, refactoring, dependency, shortcut, or architectural decision may violate the rules defined in this document.
 
-Quando existir conflito, a ordem de prioridade deve ser sempre:
+When there is a conflict, always use this priority order:
 
-1. Regras do projeto
-2. Integridade da arquitetura
-3. Manutenibilidade
-4. Previsibilidade
-5. Segurança
+1. Project rules
+2. Architectural integrity
+3. Maintainability
+4. Predictability
+5. Security
 6. Performance
-7. Velocidade de desenvolvimento
+7. Development speed
 
-Velocidade nunca justifica degradação arquitetural.
-
----
-
-## Regras Modulares Prioritárias
-
-A modularidade existe em dois níveis obrigatórios e ambos possuem prioridade muito alta.
-
-### Pastas e arquivos
-
-* A organização modular de pastas e arquivos é obrigatória.
-* Nenhum código novo deve ser criado em pastas genéricas ou acumuladas sem responsabilidade clara.
-* A estrutura de diretórios deve refletir módulos reais, pequenos, coesos e previsíveis.
-* Cada pasta deve possuir propósito explícito e conter apenas arquivos diretamente relacionados.
-* Quando a estrutura estiver ambígua, a modularização deve vir antes de novas funcionalidades.
-
-### Código
-
-* O código interno de cada módulo também deve ser modular, coeso e explícito.
-* Cada classe, função, estado e contrato deve possuir responsabilidade única e clara.
-* Nenhuma implementação deve concentrar múltiplas responsabilidades por conveniência.
-* Quando uma função, classe ou arquivo começar a acumular regras diferentes, a separação modular deve vir antes de novas funcionalidades.
+Speed never justifies architectural degradation.
 
 ---
 
-# Filosofia Central
+## High-Priority Modularity Rules
 
-O projeto deve permanecer:
+Modularity is mandatory at two levels, and both have very high priority.
 
-* Limpo
-* Previsível
-* Minimalista
+### Folders and files
+
+* Folder and file organization must be modular.
+* Do not create new code in generic or accumulated folders without a clear responsibility.
+* The directory structure must reflect real, small, cohesive, and predictable modules.
+* Each folder must have an explicit purpose and contain only directly related files.
+* When the structure is ambiguous, modularize before adding features.
+
+### Code
+
+* The code inside each module must also be modular, cohesive, and explicit.
+* Each class, function, state, and contract must have one clear responsibility.
+* Do not concentrate multiple responsibilities in one implementation for convenience.
+* When a function, class, or file begins to accumulate different rules, separate the module before adding features.
+
+---
+
+# Core Philosophy
+
+The project must remain:
+
+* Clean
+* Predictable
+* Minimal
 * Modular
-* Explícito
-* Fácil de manter
-* Escalável
-* Pronto para produção
+* Explicit
+* Maintainable
+* Scalable
+* Production-ready
 
-A base do código deve evoluir continuamente em direção à simplicidade, nunca à complexidade.
+The codebase must continuously evolve toward simplicity, never toward complexity.
 
-Toda implementação deve resolver problemas reais usando a menor complexidade necessária.
+Every implementation must solve real problems with the least complexity necessary.
 
-Evitar:
+Avoid:
 
 * Overengineering
-* Abstrações prematuras
-* Soluções temporárias
-* Comportamentos ocultos
-* Fluxos implícitos
-* Caos defensivo
-* Inconsistência arquitetural
+* Premature abstractions
+* Temporary solutions
+* Hidden behavior
+* Implicit flows
+* Defensive chaos
+* Architectural inconsistency
 
-O sistema deve continuar compreensível meses depois sem depender de contexto histórico.
-
----
-
-# Regras do Repositório
-
-* Manter um repositório Git local desde o início.
-* Comitar toda mudança lógica concluída e validada.
-* Mensagens de commit devem:
-
-  * estar em inglês
-  * ser curtas
-  * usar verbo no imperativo
-  * descrever claramente mudanças reais
-* Manter `docs/TODO.md` minimalista, atualizado e acionável.
-* Nunca versionar segredos, credenciais, tokens ou dados privados.
-* Evitar arquivos, dependências, assets, logs ou ferramentas sem necessidade real.
-* Preferir uma base limpa e funcional ao invés de preservar compatibilidade obsoleta.
-* Evitar acumular dívida técnica intencionalmente.
+The system must remain understandable months later without relying on historical context.
 
 ---
 
-# Regras de Arquitetura
+# Repository Rules
 
-## Estrutura
+* Maintain a local Git repository from the start.
+* Commit each logically complete and validated change.
+* Commit messages must:
 
-* Organizar sistemas em módulos pequenos e coesos.
-* Cada módulo deve possuir responsabilidade clara.
-* Preferir composição ao invés de herança.
-* Preferir contratos explícitos ao invés de comportamento implícito.
-* Preferir fluxos determinísticos ao invés de “mágica dinâmica”.
-* Preferir abstrações simples ao invés de camadas profundas de abstração.
-* Evitar objetos gigantes e acúmulo centralizado de lógica.
-* Regras de negócio não devem se espalhar de forma imprevisível.
+  * be in English
+  * be short
+  * use an imperative verb
+  * clearly describe the actual changes
+* Keep `docs/TODO.md` minimal, current, and actionable.
+* Never commit secrets, credentials, tokens, or private data.
+* Avoid files, dependencies, assets, logs, or tools without a real need.
+* Prefer a clean, working codebase over preserving obsolete compatibility.
+* Avoid deliberately accumulating technical debt.
+
+---
+
+# Architecture Rules
+
+## Structure
+
+* Organize systems into small, cohesive modules.
+* Each module must have a clear responsibility.
+* Prefer composition over inheritance.
+* Prefer explicit contracts over implicit behavior.
+* Prefer deterministic flows over dynamic “magic.”
+* Prefer simple abstractions over deep abstraction layers.
+* Avoid oversized objects and centralized accumulations of logic.
+* Business rules must not spread unpredictably.
 
 ## Design
 
-* APIs devem permanecer pequenas e explícitas.
-* Entradas, saídas, efeitos colaterais e falhas devem ser sempre visíveis.
-* Nenhum fallback silencioso.
-* Nenhum caminho oculto de recuperação de inicialização.
-* Nenhuma falsa resiliência escondendo falhas reais.
-* Erros devem aparecer de forma clara e previsível.
-* Transições de estado devem ser rastreáveis.
+* Keep APIs small and explicit.
+* Make inputs, outputs, side effects, and failures visible.
+* Do not use silent fallbacks.
+* Do not hide startup recovery paths.
+* Do not use false resilience to hide real failures.
+* Report errors clearly and predictably.
+* Make state transitions traceable.
 
-## Evolução
+## Evolution
 
-* Sistemas devem ser preparados para expansão futura sem reescritas destrutivas.
-* Refatorações devem simplificar o projeto, não reorganizar complexidade.
-* Reduzir fragmentação sempre que possível.
-* Remover continuamente código morto, obsoleto ou duplicado.
+* Prepare systems for future expansion without destructive rewrites.
+* Refactoring must simplify the project, not reorganize complexity.
+* Reduce fragmentation whenever possible.
+* Continuously remove dead, obsolete, or duplicated code.
 
 ---
 
-# Regras de Código
+# Coding Rules
 
-## Estilo
+## Style
 
-* Usar Rust moderno no backend Tauri e TypeScript moderno no frontend.
-* Usar APIs nativas do Windows apenas em módulos isolados, explícitos e pequenos.
-* Priorizar as versões modernas, seguras e estáveis suportadas pelo toolchain atual.
-* Manter TypeScript em modo estrito e Rust sem warnings relevantes.
-* Manter o código semântico, limpo, direto e otimizado.
-* Priorizar legibilidade acima de “esperteza”.
-* Usar tipagem forte sempre que possível.
-* Evitar nomes ambíguos.
-* Evitar indireção desnecessária.
-* Evitar complexidade excessiva com generics, traits ou tipos condicionais sem justificativa.
+* Use modern Rust for the Tauri backend and modern TypeScript for the frontend.
+* Use native Windows APIs only in isolated, explicit, and small modules.
+* Prefer modern, secure, stable versions supported by the current toolchain.
+* Keep TypeScript in strict mode and Rust free of relevant warnings.
+* Keep code semantic, clean, direct, and optimized.
+* Prioritize readability over cleverness.
+* Use strong typing whenever possible.
+* Avoid ambiguous names.
+* Avoid unnecessary indirection.
+* Avoid excessive complexity with generics, traits, or conditional types without justification.
 
-## Nomeação
+## Naming
 
-* Usar nomes claros e descritivos.
-* Evitar abreviações, salvo quando universalmente conhecidas.
-* Evitar prefixos e sufixos artificiais.
-* Arquivos internos de TypeScript devem usar PascalCase sem separadores.
-* Módulos Rust devem seguir as convenções do toolchain em snake_case.
-* Snake_case em TypeScript só é permitido quando exigido externamente.
+* Use clear, descriptive names.
+* Avoid abbreviations unless they are universally understood.
+* Avoid artificial prefixes and suffixes.
+* Internal TypeScript files must use PascalCase without separators.
+* Rust modules must follow the toolchain's snake_case conventions.
+* Use snake_case in TypeScript only when an external requirement calls for it.
 
-## Lógica
+## Logic
 
-Aplicar:
+Apply:
 
 * Single Responsibility Principle
 * DRY
-* Ownership explícito
-* Gerenciamento explícito de lifetime
+* Explicit ownership
+* Explicit lifetime management
 
-Evitar:
+Avoid:
 
-* Números mágicos
-* Código morto
-* Código comentado obsoleto
-* Mutação oculta de estado
-* Ownership implícito
-* Manipulação insegura de recursos
+* Magic numbers
+* Dead code
+* Obsolete commented-out code
+* Hidden state mutation
+* Implicit ownership
+* Unsafe resource handling
 
-Constantes devem sempre possuir:
+Constants must always have:
 
-* significado semântico
-* tipo explícito
-* clareza contextual
-
----
-
-# Regras de Runtime e Confiabilidade
-
-* Validação em runtime é a principal fonte de confiança.
-* Preferir validação live ao invés de excesso de testes automatizados.
-* Criar testes apenas quando entregarem valor real e mensurável.
-* Evitar testes barulhentos, redundantes ou caros de manter.
-* Logs devem existir apenas quando operacionalmente úteis.
-* Evitar poluição de debug.
-
-O sistema deve validar continuamente:
-
-* segurança de memória
-* lifetime de recursos
-* correção de ownership
-* ordem de inicialização
-* visibilidade de falhas
+* Semantic meaning
+* An explicit type
+* Clear context
 
 ---
 
-# Regras de Performance
+# Runtime and Reliability Rules
 
-* Otimizar com responsabilidade.
-* Nunca sacrificar manutenção por micro-otimizações.
-* Evitar alocações desnecessárias.
-* Evitar overhead desnecessário em runtime.
-* Priorizar performance estável e previsível.
-* Medir antes de otimizar agressivamente.
+* Runtime validation is the primary source of confidence.
+* Prefer live validation over an excess of automated tests.
+* Create tests only when they deliver real, measurable value.
+* Avoid noisy, redundant, or expensive-to-maintain tests.
+* Keep logs only when they are operationally useful.
+* Avoid debug noise.
 
-Performance deve ser intencional, nunca acidental.
+The system must continuously validate:
 
----
-
-# Regras de Dependências
-
-* Toda dependência deve justificar sua existência.
-* Preferir soluções internas quando a complexidade for baixa.
-* Evitar excesso de dependências.
-* Manter integrações externas isoladas.
-* Atualizar dependências regularmente para versões modernas e seguras.
+* Memory safety
+* Resource lifetimes
+* Ownership correctness
+* Initialization order
+* Failure visibility
 
 ---
 
-# Regras de UI e UX
+# Performance Rules
 
-* Interfaces devem permanecer limpas, diretas e funcionais.
-* Nenhuma complexidade visual sem valor prático.
-* Evitar estados, opções ou controles sem utilidade real.
-* Menus e fluxos devem minimizar atrito.
-* A densidade de informação deve permanecer organizada e intencional.
+* Optimize responsibly.
+* Never sacrifice maintainability for micro-optimizations.
+* Avoid unnecessary allocations.
+* Avoid unnecessary runtime overhead.
+* Prioritize stable, predictable performance.
+* Measure before aggressive optimization.
 
----
-
-# Regras Operacionais da IA
-
-A IA deve:
-
-* Pensar antes de implementar.
-* Preservar consistência arquitetural.
-* Detectar riscos futuros de manutenção.
-* Alertar violações arquiteturais antes de prosseguir.
-* Evitar implementações especulativas.
-* Nunca inventar APIs, sistemas ou comportamentos inexistentes.
-* Evitar soluções parciais e inacabadas.
-* Preferir implementações completas e funcionais.
-
-Antes de finalizar qualquer mudança, sempre revisar:
-
-* duplicação
-* código morto
-* ambiguidade
-* ownership inseguro
-* impacto de manutenção
-* consistência arquitetural
+Performance must be intentional, never accidental.
 
 ---
 
-# Padrões Proibidos
+# Dependency Rules
 
-Evitar explicitamente:
-
-* Abuso de Singleton
-* Abuso de Service Locator
-* Globais ocultos
-* Dependências circulares
-* Árvores profundas de herança
-* Mutação de estado sem ownership claro
-* God Classes
-* Abuso de reflection em runtime
-* Ownership implícito de recursos
+* Every dependency must justify its existence.
+* Prefer internal solutions when complexity is low.
+* Avoid excessive dependencies.
+* Isolate external integrations.
+* Regularly update dependencies to modern, secure versions.
 
 ---
 
-# Regras de Decisão de Engenharia
+# UI and UX Rules
 
-Quando múltiplas soluções existirem, preferir sempre a que:
-
-1. Reduz manutenção futura
-2. Melhora previsibilidade
-3. Reduz complexidade oculta
-4. Minimiza acoplamento
-5. Facilita debugging
-6. Possui menos partes móveis
-7. Preserva consistência arquitetural
+* Keep interfaces clean, direct, and functional.
+* Do not add visual complexity without practical value.
+* Avoid states, options, or controls without real utility.
+* Keep menus and flows low-friction.
+* Keep information density organized and intentional.
 
 ---
 
-# Diretiva Final
+# AI Operational Rules
 
-Todas as futuras instruções devem ser interpretadas através desta constituição.
+AI must:
 
-Caso uma solicitação entre em conflito com estas regras, o conflito deve ser explicitamente informado antes da implementação continuar.
+* Think before implementing.
+* Preserve architectural consistency.
+* Detect future maintenance risks.
+* Flag architectural violations before proceeding.
+* Avoid speculative implementations.
+* Never invent APIs, systems, or behavior that do not exist.
+* Avoid partial and unfinished solutions.
+* Prefer complete, working implementations.
 
-A integridade de longo prazo do projeto é obrigatória e inegociável.
+Before finalizing any change, always review:
+
+* Duplication
+* Dead code
+* Ambiguity
+* Unsafe ownership
+* Maintenance impact
+* Architectural consistency
+
+---
+
+# Prohibited Patterns
+
+Explicitly avoid:
+
+* Singleton abuse
+* Service Locator abuse
+* Hidden globals
+* Circular dependencies
+* Deep inheritance trees
+* State mutation without clear ownership
+* God classes
+* Runtime reflection abuse
+* Implicit resource ownership
+
+---
+
+# Engineering Decision Rules
+
+When multiple solutions are available, always prefer the one that:
+
+1. Reduces future maintenance
+2. Improves predictability
+3. Reduces hidden complexity
+4. Minimizes coupling
+5. Makes debugging easier
+6. Has fewer moving parts
+7. Preserves architectural consistency
+
+---
+
+# Final Directive
+
+Interpret all future instructions through this constitution.
+
+If a request conflicts with these rules, explicitly report the conflict before continuing implementation.
+
+Long-term integrity of the project is mandatory and non-negotiable.
