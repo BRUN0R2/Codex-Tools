@@ -7,6 +7,11 @@ import {
 } from "../Domain/ActionStatus";
 import { INITIAL_APP_SECTION, type AppSection } from "../Domain/AppSection";
 import type { CodexCleanupReport } from "../Domain/CodexCleanup";
+import {
+  CHECKING_CODEX_CLI_STATUS,
+  UNCHECKED_CODEX_CLI_STATUS,
+  type CodexCliStatus,
+} from "../Domain/CodexCli";
 import type { CodexUninstallReport } from "../Domain/CodexUninstall";
 import {
   CHECKING_CODEX_STATUS,
@@ -31,6 +36,7 @@ export type AppState = Readonly<{
   activeSection: AppSection;
   cleanupReport: CodexCleanupReport | null;
   codexStatus: CodexStatus;
+  codexCliStatus: CodexCliStatus;
   consoleMessages: readonly ConsoleMessage[];
   runtimeStatus: RuntimeStatus;
   uninstallConfirmationArmed: boolean;
@@ -42,6 +48,7 @@ export const INITIAL_APP_STATE: AppState = {
   activeSection: INITIAL_APP_SECTION,
   cleanupReport: null,
   codexStatus: UNCHECKED_CODEX_STATUS,
+  codexCliStatus: UNCHECKED_CODEX_CLI_STATUS,
   consoleMessages: createCodexConsoleMessages(UNCHECKED_CODEX_STATUS),
   runtimeStatus: WAITING_RUNTIME_STATUS,
   uninstallConfirmationArmed: false,
@@ -54,6 +61,14 @@ export function setCheckingCodexStatus(state: AppState): AppState {
     codexStatus: CHECKING_CODEX_STATUS,
     consoleMessages: createCodexConsoleMessages(CHECKING_CODEX_STATUS),
   };
+}
+
+export function setCheckingCodexCliStatus(state: AppState): AppState {
+  return { ...state, codexCliStatus: CHECKING_CODEX_CLI_STATUS };
+}
+
+export function setCodexCliStatus(state: AppState, codexCliStatus: CodexCliStatus): AppState {
+  return { ...state, codexCliStatus };
 }
 
 export function setCodexStatus(state: AppState, codexStatus: CodexStatus): AppState {

@@ -35,6 +35,12 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Prioridade em tempo real permanece fora do produto.
 - Detectar o desktop Codex pelos pacotes versionados em `Program Files\WindowsApps`,
   incluindo o executavel atual `ChatGPT.exe` e o nome legado `Codex.exe`.
+- Detectar a CLI independente em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`
+  e nos diretorios do `PATH`, sem exigir que o Desktop esteja instalado.
+- Abrir a CLI em um novo console com o token elevado do Codex Tools, iniciar no
+  perfil do usuario e estabilizar a prioridade usando o PID lancado como alvo.
+- A desinstalacao continua limitada ao pacote Desktop e dados compartilhados;
+  nao remove a instalacao independente do executavel CLI.
 - Detectar binarios primarios Codex em pacotes versionados, runtimes hashados em
   `LOCALAPPDATA` e pelo `PATH`.
 - Codex Tools deve pedir elevacao de administrador antes da janela abrir.
@@ -65,6 +71,8 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - A estabilizacao de prioridade fica pronta quando existem processos desktop e
   app-server e todos os processos Codex detectados estao em prioridade alta. Elevacao e
   informada separadamente; nao e requisito para aplicar prioridade alta.
+- Para a CLI, a estabilizacao fica pronta quando o PID iniciado continua ativo e
+  todos os processos Codex detectados estao em prioridade alta.
 - A falha de prioridade nomeia a condicao ausente ou o PID que recusou a
   prioridade.
 - A estabilizacao de prioridade roda em segundo plano para manter a interface responsiva.
@@ -81,6 +89,14 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
   hashados em `LOCALAPPDATA` como processos `codex.exe`.
 - Manter compatibilidade com a pasta versionada dinamica
   `OpenAI.Codex_*__2p2nqsd0c76g0`.
+- Descobrir catalogos de idioma com `import.meta.glob` em
+  `apps/Desktop/src/i18n/locales/*.json`. O catalogo `en.json` e a referencia e
+  fallback; `pt-BR.json` e selecionado automaticamente quando o idioma do WebView
+  corresponde a portugues.
+- Validar locale canonico, chaves conhecidas e placeholders ao carregar os
+  catalogos. Chaves ausentes usam ingles; adicionar outro idioma exige somente
+  um novo JSON com seu nome de locale.
+- Formatar numeros e pluralizacao com `Intl` no locale escolhido.
 - Usar `rusqlite` com SQLite embutido para limpar o banco local do Codex sem
   depender de `sqlite3.exe` instalado no Windows.
 - Usar `serde_json` para limpar o estado global do Codex com parser JSON real,
@@ -102,6 +118,8 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 ## Validacao atual
 
 - `npm run build`.
+- `npm run test:i18n` valida selecao exata, correspondencia por familia de idioma
+  e fallback para ingles.
 - `cargo check --manifest-path apps/Desktop/src-tauri/Cargo.toml`.
 - `cargo clippy --manifest-path apps/Desktop/src-tauri/Cargo.toml -- -D warnings`.
 - `cargo test --manifest-path apps/Desktop/src-tauri/Cargo.toml --lib` valida os

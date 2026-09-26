@@ -1,27 +1,28 @@
 import {
   cleanCodexWorkspace,
+  getCodexCliStatus,
   getCodexStatus,
   openCodex,
+  openCodexCli,
   uninstallCodexProduct,
 } from "../Backend/CodexCommands";
 import type { AppSection } from "../Domain/AppSection";
 import { codexStatusesAreEqual } from "../Domain/CodexInstallation";
-import {
-  CODEX_CLEANUP_ACTION_LABEL,
-  type CodexCleanupReport,
-} from "../Domain/CodexCleanup";
-import {
-  CODEX_UNINSTALL_ACTION_LABEL,
-  type CodexUninstallReport,
-} from "../Domain/CodexUninstall";
+import type { CodexCleanupReport } from "../Domain/CodexCleanup";
+import type { CodexUninstallReport } from "../Domain/CodexUninstall";
 import type { CodexLaunchResponse } from "../Domain/CodexLaunch";
+import { formatBytes } from "../i18n/format";
+import { translate, translatePlural } from "../i18n/catalog";
+import { translateCommandFailure } from "../i18n/diagnostics";
 import {
   INITIAL_APP_STATE,
   clearConsoleMessages,
+  setCheckingCodexCliStatus,
   setActiveSection,
   setOpeningRuntimeStatus,
   setCheckingCodexStatus,
   setCodexStatus,
+  setCodexCliStatus,
   setCleanupReport,
   setFailedActionStatus,
   setFailedCodexStatus,
@@ -38,7 +39,8 @@ import {
   priorityStabilizationHasFinished,
 } from "../Domain/PriorityStabilization";
 
-const OPEN_CODEX_ACTION_LABEL = "Abrindo Codex";
+const OPEN_CODEX_ACTION_LABEL = translate("sidebar.status.opening");
+const OPEN_CODEX_CLI_ACTION_LABEL = translate("cli.opening");
 const CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS = 500;
 const CODEX_OPEN_STATUS_POLL_BUDGET_MILLISECONDS = 35_000;
 
@@ -62,6 +64,9 @@ export function mountApp(root: HTMLElement): void {
         onCodexRefresh(): void {
           void refreshCodexStatus();
         },
+        onCodexCliRefresh(): void {
+          void refreshCodexCliStatus();
+        },
         onConsoleClear(): void {
           clearConsole();
         },
@@ -70,6 +75,9 @@ export function mountApp(root: HTMLElement): void {
         },
         onOpenCodex(): void {
           void launchCodex();
+        },
+        onOpenCodexCli(): void {
+          void launchCodexCli();
         },
         onSelectSection(section: AppSection): void {
           selectSection(section);
@@ -94,27 +102,41 @@ export function mountApp(root: HTMLElement): void {
 
     state = result.ok
       ? setCodexStatus(state, result.value)
-      : setFailedCodexStatus(state, result.error.message);
+      : setFailedCodexStatus(state, translateCommandFailure(result.error, "general"));
+    render();
+  }
+
+  async function refreshCodexCliStatus(): Promise<void> {
+    state = setCheckingCodexCliStatus(state);
+    render();
+
+    const result = await getCodexCliStatus();
+    state = result.ok
+      ? setCodexCliStatus(state, result.value)
+      : setCodexCliStatus(state, {
+          state: "Failed",
+          message: translateCommandFailure(result.error, "general"),
+        });
     render();
   }
 
   function clearConsole(): void {
-    state = setSucceededActionStatus(clearConsoleMessages(state), "Console limpo.");
+    state = setSucceededActionStatus(clearConsoleMessages(state), translate("console.cleared"));
     render();
   }
 
   async function copyConsole(): Promise<void> {
     if (state.consoleMessages.length === 0) {
-      state = setSucceededActionStatus(state, "Console vazio.");
+      state = setSucceededActionStatus(state, translate("console.empty"));
       render();
       return;
     }
 
     try {
       await navigator.clipboard.writeText(state.consoleMessages.join("\n"));
-      state = setSucceededActionStatus(state, "Console copiado.");
+      state = setSucceededActionStatus(state, translate("console.copied"));
     } catch {
-      state = setFailedActionStatus(state, "Nao foi possivel copiar o console.");
+      state = setFailedActionStatus(state, translate("console.copyFailed"));
     }
 
     render();
@@ -135,18 +157,40 @@ export function mountApp(root: HTMLElement): void {
       return;
     }
 
-    state = setFailedActionStatus(setWaitingRuntimeStatus(state), result.error.message);
+    state = setFailedActionStatus(
+      setWaitingRuntimeStatus(state),
+      translateCommandFailure(result.error, "desktop"),
+    );
     render();
     await refreshCodexStatus();
   }
 
+  async function launchCodexCli(): Promise<void> {
+    const monitorVersion = openingMonitorVersion + 1;
+    openingMonitorVersion = monitorVersion;
+    state = setRunningActionStatus(state, OPEN_CODEX_CLI_ACTION_LABEL);
+    render();
+
+    const result = await openCodexCli();
+    if (!result.ok) {
+      const message = translateCommandFailure(result.error, "cli");
+      state = setFailedActionStatus(state, message);
+      render();
+      await refreshCodexCliStatus();
+      return;
+    }
+
+    render();
+    void monitorCodexOpening(monitorVersion, "cli", result.value);
+  }
+
   async function cleanCodex(): Promise<void> {
-    state = setRunningActionStatus(state, CODEX_CLEANUP_ACTION_LABEL);
+    state = setRunningActionStatus(state, translate("cleanup.cleaning"));
     render();
 
     const result = await cleanCodexWorkspace();
     if (!result.ok) {
-      state = setFailedActionStatus(state, result.error.message);
+      state = setFailedActionStatus(state, translateCommandFailure(result.error, "cleanup"));
       render();
       return;
     }
@@ -170,14 +214,14 @@ export function mountApp(root: HTMLElement): void {
   }
 
   async function uninstallCodex(): Promise<void> {
-    state = setRunningActionStatus(state, CODEX_UNINSTALL_ACTION_LABEL);
+    state = setRunningActionStatus(state, translate("uninstall.confirming"));
     render();
 
     const result = await uninstallCodexProduct();
     if (!result.ok) {
       state = setFailedActionStatus(
         setUninstallConfirmationArmed(state, false),
-        result.error.message
+        translateCommandFailure(result.error, "uninstall")
       );
       render();
       return;
@@ -191,7 +235,11 @@ export function mountApp(root: HTMLElement): void {
     await refreshCodexStatus();
   }
 
-  async function monitorCodexOpening(monitorVersion: number): Promise<void> {
+  async function monitorCodexOpening(
+    monitorVersion: number,
+    target: "desktop" | "cli" = "desktop",
+    cliLaunchResponse?: CodexLaunchResponse,
+  ): Promise<void> {
     const deadline = Date.now() + CODEX_OPEN_STATUS_POLL_BUDGET_MILLISECONDS;
 
     while (Date.now() < deadline) {
@@ -206,7 +254,7 @@ export function mountApp(root: HTMLElement): void {
       const previousRuntimeStatus = state.runtimeStatus;
       state = result.ok
         ? setCodexStatus(state, result.value)
-        : setFailedCodexStatus(state, result.error.message);
+        : setFailedCodexStatus(state, translateCommandFailure(result.error, "general"));
 
       if (
         !codexStatusesAreEqual(previousCodexStatus, state.codexStatus) ||
@@ -218,23 +266,29 @@ export function mountApp(root: HTMLElement): void {
       if (result.ok && priorityStabilizationHasFailed(result.value.priorityStabilization)) {
         state = setFailedActionStatus(
           state,
-          result.value.priorityStabilization.message ??
-            "Nao foi possivel estabilizar a prioridade alta do Codex."
+          result.value.priorityStabilization.message ?? translate("common.priorityFailed")
         );
         render();
         return;
       }
 
       if (result.ok && priorityStabilizationHasFinished(result.value.priorityStabilization)) {
+        if (target === "cli" && cliLaunchResponse !== undefined) {
+          state = setSucceededActionStatus(state, createCliLaunchSuccessMessage(cliLaunchResponse));
+          render();
+        }
         return;
       }
     }
 
-    if (state.runtimeStatus === "Opening") {
+    if (target === "desktop" && state.runtimeStatus === "Opening") {
       state = setFailedActionStatus(
         setWaitingRuntimeStatus(state),
-        "Nao foi possivel confirmar a prioridade alta do Codex no tempo esperado."
+        translate("common.priorityTimeout")
       );
+      render();
+    } else if (target === "cli") {
+      state = setFailedActionStatus(state, translate("common.priorityTimeout"));
       render();
     }
   }
@@ -246,33 +300,42 @@ export function mountApp(root: HTMLElement): void {
   }
 
   function createCodexLaunchSuccessMessage(response: CodexLaunchResponse): string {
-    return `Codex administrativo ativo (PID ${response.processId}, app-server elevado). Ajustando prioridade.`;
+    return translate("action.desktopLaunchSuccess", { pid: response.processId });
+  }
+
+  function createCliLaunchSuccessMessage(response: CodexLaunchResponse): string {
+    return translate("cli.launchSuccess", { pid: response.processId });
   }
 
   function createCleanupSuccessMessage(report: CodexCleanupReport): string {
-    return `Limpeza concluida: ${report.removedThreadCount} conversa(s), ${report.removedFileCount} arquivo(s), ${formatBytes(report.freedBytes)} liberados.`;
+    return translate("cleanup.complete", {
+      threads: translatePlural("cleanup.threadCount", report.removedThreadCount, {
+        count: report.removedThreadCount,
+      }),
+      files: translatePlural("cleanup.fileCount", report.removedFileCount, {
+        count: report.removedFileCount,
+      }),
+      size: formatBytes(report.freedBytes),
+    });
   }
 
   function createUninstallSuccessMessage(report: CodexUninstallReport): string {
     const packageState = report.packageRemoved
-      ? "pacote removido"
-      : "pacote ausente ou nao removido";
-    return `Desinstalacao concluida: ${report.removedFileCount} arquivo(s), ${report.removedDirectoryCount} pasta(s), ${formatBytes(report.freedBytes)} liberados; ${packageState}.`;
-  }
-
-  function formatBytes(bytes: number): string {
-    const units = ["B", "KB", "MB", "GB"] as const;
-    let value = bytes;
-    let unitIndex = 0;
-
-    while (value >= 1024 && unitIndex < units.length - 1) {
-      value /= 1024;
-      unitIndex += 1;
-    }
-
-    return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+      ? translate("uninstall.removed")
+      : translate("uninstall.absent");
+    return translate("uninstall.complete", {
+      files: translatePlural("uninstall.fileCount", report.removedFileCount, {
+        count: report.removedFileCount,
+      }),
+      folders: translatePlural("uninstall.folderCount", report.removedDirectoryCount, {
+        count: report.removedDirectoryCount,
+      }),
+      size: formatBytes(report.freedBytes),
+      packageState,
+    });
   }
 
   render();
   void refreshCodexStatus();
+  void refreshCodexCliStatus();
 }

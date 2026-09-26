@@ -5,15 +5,16 @@ import type {
   CodexStatus,
 } from "./CodexInstallation";
 import type { PriorityStabilization } from "./PriorityStabilization";
+import { translate } from "../i18n/catalog";
 
 export type ConsoleMessage = string;
 
 export function createCodexConsoleMessages(status: CodexStatus): readonly ConsoleMessage[] {
   switch (status.state) {
     case "Unchecked":
-      return ["Codex nao verificado."];
+      return [translate("console.unchecked")];
     case "Checking":
-      return ["Verificando Codex."];
+      return [translate("console.checking")];
     case "Found":
       return appendPriorityStabilizationMessages(
         [...createProcessMessages(status.processes), createElevationCapabilityMessage(status)],
@@ -26,7 +27,7 @@ export function createCodexConsoleMessages(status: CodexStatus): readonly Consol
       );
     case "Failed":
       return appendPriorityStabilizationMessages(
-        [`Erro: ${status.message}`],
+        [translate("action.errorPrefix", { message: status.message })],
         status.priorityStabilization
       );
   }
@@ -36,17 +37,19 @@ function createElevationCapabilityMessage(
   status: Extract<CodexStatus, { state: "Found" }>
 ): ConsoleMessage {
   if (status.packageAllowsElevation === false) {
-    return "O manifesto nao declara allowElevation. Confira a elevacao real de cada processo acima.";
+    return translate("console.elevationCapability.denied");
   }
   if (status.packageAllowsElevation === true) {
-    return "O pacote Codex declara allowElevation; confira a elevacao real de cada processo acima.";
+    return translate("console.elevationCapability.allowed");
   }
-  return `Nao foi possivel verificar allowElevation: ${status.elevationDiagnostic ?? "erro desconhecido."}`;
+  return translate("console.elevationCapability.failed", {
+    message: status.elevationDiagnostic ?? translate("common.unknownError"),
+  });
 }
 
 function createProcessMessages(processes: readonly CodexProcess[]): readonly ConsoleMessage[] {
   if (processes.length === 0) {
-    return ["Nenhum processo Codex em execucao."];
+    return [translate("console.processNone")];
   }
 
   return processes.map(formatProcessMessage);
@@ -55,39 +58,46 @@ function createProcessMessages(processes: readonly CodexProcess[]): readonly Con
 function formatProcessMessage(process: CodexProcess): ConsoleMessage {
   const elevation = formatElevation(process.elevation);
   const priority = formatPriority(process.priority);
-  const executablePath =
-    process.executablePath === null ? "" : ` | Caminho: ${process.executablePath}`;
+  const executablePath = process.executablePath === null
+    ? ""
+    : translate("console.path", { path: process.executablePath });
 
-  return `Processo: ${process.processName} | PID: ${process.processId} | Elevacao: ${elevation} | Prioridade: ${priority}${executablePath}`;
+  return translate("console.process", {
+    name: process.processName,
+    pid: process.processId,
+    elevation,
+    priority,
+    path: executablePath,
+  });
 }
 
 function formatElevation(elevation: CodexProcessElevation): string {
   switch (elevation) {
     case "Elevated":
-      return "administrador";
+      return translate("console.elevation.admin");
     case "NotElevated":
-      return "normal";
+      return translate("console.elevation.normal");
     case "Unavailable":
-      return "indisponivel";
+      return translate("console.elevation.unavailable");
   }
 }
 
 function formatPriority(priority: CodexProcessPriority): string {
   switch (priority) {
     case "Idle":
-      return "baixa";
+      return translate("console.priority.idle");
     case "BelowNormal":
-      return "abaixo do normal";
+      return translate("console.priority.belowNormal");
     case "Normal":
-      return "normal";
+      return translate("console.priority.normal");
     case "AboveNormal":
-      return "acima do normal";
+      return translate("console.priority.aboveNormal");
     case "High":
-      return "alta";
+      return translate("console.priority.high");
     case "Realtime":
-      return "tempo real";
+      return translate("console.priority.realtime");
     case "Unknown":
-      return "indisponivel";
+      return translate("console.priority.unknown");
   }
 }
 
@@ -106,12 +116,14 @@ function createPriorityStabilizationMessages(
     case "Idle":
       return [];
     case "Running":
-      return ["Estabilizando prioridade alta do Codex."];
+      return [translate("console.priority.running")];
     case "Succeeded":
       return [createPrioritySucceededMessage(priorityStabilization)];
     case "Failed":
       return [
-        `Erro de prioridade: ${priorityStabilization.message ?? "falha desconhecida."}`,
+        translate("console.priority.failed", {
+          message: priorityStabilization.message ?? translate("common.unknownError"),
+        }),
       ];
   }
 }
@@ -120,8 +132,16 @@ function createPrioritySucceededMessage(
   priorityStabilization: PriorityStabilization
 ): ConsoleMessage {
   if (priorityStabilization.updatedProcessIds.length === 0) {
-    return `Prioridade alta estabilizada em ${priorityStabilization.attempts} tentativas.`;
+    return translate("console.priority.succeeded", {
+      attempts: priorityStabilization.attempts,
+      processes: "",
+    });
   }
 
-  return `Prioridade alta estabilizada em ${priorityStabilization.attempts} tentativas | PIDs: ${priorityStabilization.updatedProcessIds.join(", ")}`;
+  return translate("console.priority.succeeded", {
+    attempts: priorityStabilization.attempts,
+    processes: translate("console.priority.processes", {
+      ids: priorityStabilization.updatedProcessIds.join(", "),
+    }),
+  });
 }

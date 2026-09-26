@@ -118,13 +118,33 @@ pub enum PriorityStabilizationState {
 }
 
 pub fn start_high_priority_stabilization(store: PriorityStabilizationStore) -> Result<(), String> {
+    start_high_priority_stabilization_for_target(store, StabilizationTarget::Desktop)
+}
+
+pub fn start_cli_high_priority_stabilization(
+    store: PriorityStabilizationStore,
+    process_id: u32,
+) -> Result<(), String> {
+    start_high_priority_stabilization_for_target(store, StabilizationTarget::Cli { process_id })
+}
+
+#[derive(Clone, Copy)]
+enum StabilizationTarget {
+    Desktop,
+    Cli { process_id: u32 },
+}
+
+fn start_high_priority_stabilization_for_target(
+    store: PriorityStabilizationStore,
+    target: StabilizationTarget,
+) -> Result<(), String> {
     store.mark_running()?;
     let worker_store = store.clone();
 
     match thread::Builder::new()
         .name(STABILIZATION_THREAD_NAME.to_owned())
         .spawn(move || {
-            let status_update = match apply_high_priority_until_session_is_ready() {
+            let status_update = match apply_high_priority_until_session_is_ready(target) {
                 Ok(result) => worker_store.mark_succeeded(result),
                 Err(failure) => worker_store.mark_failed(failure),
             };
@@ -161,13 +181,14 @@ impl PriorityStabilizationFailure {
     }
 }
 
-fn apply_high_priority_until_session_is_ready()
--> Result<PriorityStabilizationResult, PriorityStabilizationFailure> {
+fn apply_high_priority_until_session_is_ready(
+    target: StabilizationTarget,
+) -> Result<PriorityStabilizationResult, PriorityStabilizationFailure> {
     let deadline = Instant::now() + CODEX_SESSION_STARTUP_BUDGET;
     let mut updated_process_ids = BTreeSet::new();
     let mut priority_failures = BTreeMap::new();
     let mut ready_confirmations = 0usize;
-    let mut desktop_was_observed = false;
+    let mut target_was_observed = false;
     let mut attempt = 0usize;
 
     loop {
@@ -191,11 +212,11 @@ fn apply_high_priority_until_session_is_ready()
             )
         })?;
         let session = inspect_codex_session(&processes);
-        if session.desktop_process_count > 0 {
-            desktop_was_observed = true;
+        if session.target_process_is_running(target) {
+            target_was_observed = true;
         }
 
-        if session_is_ready(&session) {
+        if session_is_ready(&session, target) {
             ready_confirmations += 1;
             if ready_confirmations >= REQUIRED_READY_CONFIRMATIONS {
                 return Ok(PriorityStabilizationResult {
@@ -205,16 +226,16 @@ fn apply_high_priority_until_session_is_ready()
             }
         } else {
             ready_confirmations = 0;
-            if desktop_was_observed && session.desktop_process_count == 0 {
+            if target_was_observed && !session.target_process_is_running(target) {
                 return Err(PriorityStabilizationFailure::new(
                     attempt,
-                    "Codex desktop process exited before high priority was established.",
+                    describe_target_exit(target),
                 ));
             }
             if Instant::now() >= deadline {
                 return Err(PriorityStabilizationFailure::new(
                     attempt,
-                    describe_startup_failure(&session, &priority_failures),
+                    describe_startup_failure(&session, &priority_failures, target),
                 ));
             }
         }
@@ -244,7 +265,17 @@ fn record_priority_updates(
 struct CodexSessionSnapshot {
     desktop_process_count: usize,
     app_server_process_count: usize,
+    process_ids: BTreeSet<u32>,
     processes_outside_high_priority: Vec<ProcessPriorityGap>,
+}
+
+impl CodexSessionSnapshot {
+    fn target_process_is_running(&self, target: StabilizationTarget) -> bool {
+        match target {
+            StabilizationTarget::Desktop => self.desktop_process_count > 0,
+            StabilizationTarget::Cli { process_id } => self.process_ids.contains(&process_id),
+        }
+    }
 }
 
 struct ProcessPriorityGap {
@@ -257,10 +288,12 @@ fn inspect_codex_session(processes: &[CodexProcessInspection]) -> CodexSessionSn
     let mut snapshot = CodexSessionSnapshot {
         desktop_process_count: 0,
         app_server_process_count: 0,
+        process_ids: BTreeSet::new(),
         processes_outside_high_priority: Vec::new(),
     };
 
     for process in processes {
+        snapshot.process_ids.insert(process.process_id);
         let executable_path = process.executable_path.as_deref().unwrap_or("");
         if is_codex_desktop_executable_path(executable_path) {
             snapshot.desktop_process_count += 1;
@@ -285,23 +318,39 @@ fn inspect_codex_session(processes: &[CodexProcessInspection]) -> CodexSessionSn
     snapshot
 }
 
-fn session_is_ready(snapshot: &CodexSessionSnapshot) -> bool {
-    snapshot.desktop_process_count > 0
-        && snapshot.app_server_process_count > 0
-        && snapshot.processes_outside_high_priority.is_empty()
+fn session_is_ready(snapshot: &CodexSessionSnapshot, target: StabilizationTarget) -> bool {
+    let required_runtime_is_running = match target {
+        StabilizationTarget::Desktop => {
+            snapshot.desktop_process_count > 0 && snapshot.app_server_process_count > 0
+        }
+        StabilizationTarget::Cli { process_id } => snapshot.process_ids.contains(&process_id),
+    };
+    required_runtime_is_running && snapshot.processes_outside_high_priority.is_empty()
 }
 
 fn describe_startup_failure(
     snapshot: &CodexSessionSnapshot,
     priority_failures: &BTreeMap<u32, String>,
+    target: StabilizationTarget,
 ) -> String {
     let mut reasons = Vec::new();
 
-    if snapshot.desktop_process_count == 0 {
-        reasons.push("the Codex desktop process is not running".to_owned());
-    }
-    if snapshot.app_server_process_count == 0 {
-        reasons.push("the Codex app-server is not running".to_owned());
+    match target {
+        StabilizationTarget::Desktop => {
+            if snapshot.desktop_process_count == 0 {
+                reasons.push("the Codex desktop process is not running".to_owned());
+            }
+            if snapshot.app_server_process_count == 0 {
+                reasons.push("the Codex app-server is not running".to_owned());
+            }
+        }
+        StabilizationTarget::Cli { process_id } => {
+            if !snapshot.process_ids.contains(&process_id) {
+                reasons.push(format!(
+                    "the launched Codex CLI process {process_id} is not running"
+                ));
+            }
+        }
     }
     for process in &snapshot.processes_outside_high_priority {
         reasons.push(describe_process_gap(process, priority_failures));
@@ -314,6 +363,17 @@ fn describe_startup_failure(
         "Codex did not reach high priority within the startup budget: {}.",
         reasons.join("; ")
     )
+}
+
+fn describe_target_exit(target: StabilizationTarget) -> String {
+    match target {
+        StabilizationTarget::Desktop => {
+            "Codex desktop process exited before high priority was established.".to_owned()
+        }
+        StabilizationTarget::Cli { process_id } => {
+            format!("Codex CLI process {process_id} exited before high priority was established.")
+        }
+    }
 }
 
 fn describe_process_gap(
@@ -338,15 +398,17 @@ fn describe_process_gap(
 #[cfg(test)]
 mod tests {
     use super::{
-        CodexSessionSnapshot, describe_startup_failure, inspect_codex_session, session_is_ready,
+        CodexSessionSnapshot, StabilizationTarget, describe_startup_failure, inspect_codex_session,
+        session_is_ready,
     };
     use crate::platform::windows_process::{
         CodexProcessInspection, WindowsProcessElevationState, WindowsProcessPriorityState,
     };
-    use std::collections::BTreeMap;
+    use std::collections::{BTreeMap, BTreeSet};
 
     const DESKTOP_PATH: &str = r"C:\Program Files\WindowsApps\OpenAI.Codex_26.917.9434.0_x64__2p2nqsd0c76g0\app\ChatGPT.exe";
     const APP_SERVER_PATH: &str = r"C:\Program Files\WindowsApps\OpenAI.Codex_26.917.9434.0_x64__2p2nqsd0c76g0\app\resources\codex.exe";
+    const CLI_PATH: &str = r"C:\Users\Example\AppData\Local\Programs\OpenAI\Codex\bin\codex.exe";
 
     #[test]
     fn ready_session_requires_desktop_app_server_and_high_priority() {
@@ -396,9 +458,31 @@ mod tests {
             WindowsProcessPriorityState::High,
             WindowsProcessElevationState::NotElevated,
         )]);
-        assert!(session_is_ready(&ready));
-        assert!(!session_is_ready(&renderer_still_normal));
-        assert!(!session_is_ready(&app_server_not_started));
+        assert!(session_is_ready(&ready, StabilizationTarget::Desktop));
+        assert!(!session_is_ready(
+            &renderer_still_normal,
+            StabilizationTarget::Desktop
+        ));
+        assert!(!session_is_ready(
+            &app_server_not_started,
+            StabilizationTarget::Desktop
+        ));
+
+        let cli = inspect_codex_session(&[process(
+            20,
+            "codex.exe",
+            Some(CLI_PATH),
+            WindowsProcessPriorityState::High,
+            WindowsProcessElevationState::Elevated,
+        )]);
+        assert!(session_is_ready(
+            &cli,
+            StabilizationTarget::Cli { process_id: 20 }
+        ));
+        assert!(!session_is_ready(
+            &cli,
+            StabilizationTarget::Cli { process_id: 21 }
+        ));
     }
 
     #[test]
@@ -413,7 +497,8 @@ mod tests {
         let mut priority_failures = BTreeMap::new();
         priority_failures.insert(41, "Access is denied.".to_owned());
 
-        let message = describe_startup_failure(&snapshot, &priority_failures);
+        let message =
+            describe_startup_failure(&snapshot, &priority_failures, StabilizationTarget::Desktop);
 
         assert!(message.contains("the Codex app-server is not running"));
         assert!(message.contains("PID 41 (ChatGPT.exe) is Normal: Access is denied."));
@@ -426,9 +511,11 @@ mod tests {
             &CodexSessionSnapshot {
                 desktop_process_count: 0,
                 app_server_process_count: 0,
+                process_ids: BTreeSet::new(),
                 processes_outside_high_priority: Vec::new(),
             },
             &BTreeMap::new(),
+            StabilizationTarget::Desktop,
         );
 
         assert!(message.contains("the Codex desktop process is not running"));

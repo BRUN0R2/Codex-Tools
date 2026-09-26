@@ -1,9 +1,8 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
-import {
-  CODEX_UNINSTALL_ACTION_LABEL,
-  type CodexUninstallReport,
-  type CodexUninstallTarget,
-} from "../Domain/CodexUninstall";
+import type { CodexUninstallReport, CodexUninstallTarget } from "../Domain/CodexUninstall";
+import { formatBytes } from "../i18n/format";
+import { translate, translatePlural } from "../i18n/catalog";
+import { translateUninstallDiagnostic, translateUninstallTargetName } from "../i18n/diagnostics";
 
 export type CodexUninstallPanelProps = Readonly<{
   actionStatus: ActionStatus;
@@ -13,9 +12,6 @@ export type CodexUninstallPanelProps = Readonly<{
   onCancelConfirmation: () => void;
   onUninstall: () => void;
 }>;
-
-const BYTE_UNITS: readonly string[] = ["B", "KB", "MB", "GB"];
-const BYTES_PER_UNIT = 1024;
 
 type UninstallSummaryValue = readonly [label: string, value: string];
 
@@ -35,7 +31,7 @@ export function createCodexUninstallPanel({
 
   const title = document.createElement("h2");
   title.className = "SectionTitle";
-  title.textContent = "Desinstalacao";
+  title.textContent = translate("uninstall.title");
 
   const heading = document.createElement("div");
   heading.className = "SectionHeading";
@@ -43,7 +39,7 @@ export function createCodexUninstallPanel({
   const description = document.createElement("p");
   description.className = "SectionDescription";
   description.textContent =
-    "Remove o pacote Codex e apaga dados locais, cache, configuracoes e residuais relacionados.";
+    translate("uninstall.description");
   heading.append(title, description);
 
   const actions = document.createElement("div");
@@ -54,7 +50,7 @@ export function createCodexUninstallPanel({
     cancelButton.className = "SecondaryButton";
     cancelButton.type = "button";
     cancelButton.disabled = actionStatus.state === "Running";
-    cancelButton.textContent = "Cancelar";
+    cancelButton.textContent = translate("uninstall.cancel");
     cancelButton.addEventListener("click", onCancelConfirmation);
 
     const confirmButton = document.createElement("button");
@@ -62,9 +58,9 @@ export function createCodexUninstallPanel({
     confirmButton.type = "button";
     confirmButton.disabled = actionStatus.state === "Running";
     confirmButton.textContent =
-      actionStatus.state === "Running" && actionStatus.label === CODEX_UNINSTALL_ACTION_LABEL
-        ? "Desinstalando"
-        : "Confirmar exclusao total";
+      actionStatus.state === "Running" && actionStatus.label === translate("uninstall.confirming")
+        ? translate("uninstall.confirming")
+        : translate("uninstall.confirm");
     confirmButton.addEventListener("click", onUninstall);
 
     actions.append(cancelButton, confirmButton);
@@ -73,7 +69,7 @@ export function createCodexUninstallPanel({
     armButton.className = "DangerButton";
     armButton.type = "button";
     armButton.disabled = actionStatus.state === "Running";
-    armButton.textContent = "Desinstalar e apagar tudo";
+    armButton.textContent = translate("uninstall.removeAll");
     armButton.addEventListener("click", onArmConfirmation);
     actions.append(armButton);
   }
@@ -102,13 +98,13 @@ function createScopeNotice(confirmationArmed: boolean): HTMLElementTagNameMap["s
 
   const title = document.createElement("strong");
   title.textContent = confirmationArmed
-    ? "Confirmacao necessaria"
-    : "Escopo da desinstalacao";
+    ? translate("uninstall.confirmationTitle")
+    : translate("uninstall.scopeTitle");
 
   const body = document.createElement("p");
   body.textContent = confirmationArmed
-    ? "Esta acao e irreversivel. Feche o Codex e o ChatGPT Desktop antes de continuar."
-    : "Serao removidos home .codex, LocalAppData OpenAI\\Codex, dados MSIX, ProgramData, cache de runtimes, Documents\\Codex, tarefa elevada, AppCompat RUNASADMIN e o pacote OpenAI.Codex.";
+    ? translate("uninstall.confirmationBody")
+    : translate("uninstall.scopeBody");
 
   section.append(title, body);
   return section;
@@ -123,16 +119,18 @@ function createUninstallSummary(
   const values: readonly UninstallSummaryValue[] =
     uninstallReport === null
       ? [
-          ["Arquivos", "-"],
-          ["Pastas", "-"],
-          ["Pacote", "-"],
-          ["Liberado", "-"],
+          [translate("cleanup.files"), "-"],
+          [translate("cleanup.folders"), "-"],
+          [translate("uninstall.package"), "-"],
+          [translate("cleanup.freed"), "-"],
         ]
       : [
-          ["Arquivos", uninstallReport.removedFileCount.toString()],
-          ["Pastas", uninstallReport.removedDirectoryCount.toString()],
-          ["Pacote", uninstallReport.packageRemoved ? "Removido" : "Ausente"],
-          ["Liberado", formatBytes(uninstallReport.freedBytes)],
+          [translate("cleanup.files"), uninstallReport.removedFileCount.toString()],
+          [translate("cleanup.folders"), uninstallReport.removedDirectoryCount.toString()],
+          [translate("uninstall.package"), uninstallReport.packageRemoved
+            ? translate("uninstall.removed")
+            : translate("uninstall.absent")],
+          [translate("cleanup.freed"), formatBytes(uninstallReport.freedBytes)],
         ];
 
   for (const [label, value] of values) {
@@ -164,7 +162,7 @@ function createUninstallTargets(
 
     const name = document.createElement("span");
     name.className = "CleanupTargetName";
-    name.textContent = target.name;
+    name.textContent = translateUninstallTargetName(target.name);
 
     const result = document.createElement("span");
     result.className = "CleanupTargetResult";
@@ -177,7 +175,7 @@ function createUninstallTargets(
   if (section.childElementCount === 0) {
     const empty = document.createElement("p");
     empty.className = "CleanupEmptyState";
-    empty.textContent = "Nenhum alvo processado.";
+    empty.textContent = translate("uninstall.empty");
     section.append(empty);
   }
 
@@ -190,7 +188,7 @@ function createWarningList(warnings: readonly string[]): HTMLElementTagNameMap["
 
   for (const warning of warnings) {
     const item = document.createElement("p");
-    item.textContent = warning;
+    item.textContent = translateUninstallDiagnostic(warning);
     section.append(item);
   }
 
@@ -201,11 +199,15 @@ function formatTargetResult(target: CodexUninstallTarget): string {
   const parts: string[] = [];
 
   if (target.removedFileCount > 0) {
-    parts.push(`${target.removedFileCount} arquivo(s)`);
+    parts.push(translatePlural("uninstall.fileCount", target.removedFileCount, {
+      count: target.removedFileCount,
+    }));
   }
 
   if (target.removedDirectoryCount > 0) {
-    parts.push(`${target.removedDirectoryCount} pasta(s)`);
+    parts.push(translatePlural("uninstall.folderCount", target.removedDirectoryCount, {
+      count: target.removedDirectoryCount,
+    }));
   }
 
   if (target.freedBytes > 0) {
@@ -213,21 +215,8 @@ function formatTargetResult(target: CodexUninstallTarget): string {
   }
 
   if (parts.length === 0) {
-    return target.details;
+    return translateUninstallDiagnostic(target.details);
   }
 
-  return `${parts.join(" | ")} · ${target.details}`;
-}
-
-function formatBytes(bytes: number): string {
-  let value = bytes;
-  let unitIndex = 0;
-
-  while (value >= BYTES_PER_UNIT && unitIndex < BYTE_UNITS.length - 1) {
-    value /= BYTES_PER_UNIT;
-    unitIndex += 1;
-  }
-
-  const fractionDigits = unitIndex === 0 ? 0 : 2;
-  return `${value.toFixed(fractionDigits)} ${BYTE_UNITS[unitIndex]}`;
+  return `${parts.join(" | ")} · ${translateUninstallDiagnostic(target.details)}`;
 }

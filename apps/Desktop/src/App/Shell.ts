@@ -3,11 +3,13 @@ import type { AppSection } from "../Domain/AppSection";
 import { createAppNavigation } from "../Ui/AppNavigation";
 import { createBrandIcon } from "../Ui/ApplicationIcons";
 import { createCodexActionPanel } from "../Ui/CodexActionPanel";
+import { createCodexCliPanel } from "../Ui/CodexCliPanel";
 import { createCodexCleanupPanel } from "../Ui/CodexCleanupPanel";
 import { createCodexConsolePanel } from "../Ui/CodexConsolePanel";
 import { createCodexStatusPanel } from "../Ui/CodexStatusPanel";
 import { createCodexUninstallPanel } from "../Ui/CodexUninstallPanel";
 import { createWindowChrome } from "../Ui/WindowChrome";
+import { translate } from "../i18n/catalog";
 
 type ShellProps = Readonly<{
   state: AppState;
@@ -18,6 +20,8 @@ type ShellProps = Readonly<{
   onConsoleClear: () => void;
   onConsoleCopy: () => void;
   onOpenCodex: () => void;
+  onOpenCodexCli: () => void;
+  onCodexCliRefresh: () => void;
   onSelectSection: (section: AppSection) => void;
   onUninstallCodex: () => void;
 }>;
@@ -44,6 +48,8 @@ export function createShell({
   onConsoleClear,
   onConsoleCopy,
   onOpenCodex,
+  onOpenCodexCli,
+  onCodexCliRefresh,
   onSelectSection,
   onUninstallCodex,
 }: ShellProps): HTMLElementTagNameMap["section"] {
@@ -52,7 +58,7 @@ export function createShell({
 
   const sidebar = document.createElement("aside");
   sidebar.className = "AppSidebar";
-  sidebar.setAttribute("aria-label", "Navegacao do Codex Tools");
+  sidebar.setAttribute("aria-label", translate("app.sidebarLabel"));
 
   const identity = document.createElement("div");
   identity.className = "AppIdentity";
@@ -63,7 +69,7 @@ export function createShell({
   brandMark.append(createBrandIcon());
 
   const brandName = document.createElement("strong");
-  brandName.textContent = "Codex Tools";
+  brandName.textContent = translate("sidebar.title");
   identity.append(brandMark, brandName);
 
   const sidebarFooter = document.createElement("div");
@@ -100,6 +106,8 @@ export function createShell({
       onConsoleClear,
       onConsoleCopy,
       onOpenCodex,
+      onOpenCodexCli,
+      onCodexCliRefresh,
       onUninstallCodex,
     })
   );
@@ -120,7 +128,7 @@ function createSidebarRuntimeCard(state: AppState): HTMLDivElement {
   content.className = "SidebarRuntimeContent";
 
   const title = document.createElement("strong");
-  title.textContent = "Codex Desktop";
+  title.textContent = translate("sidebar.title");
 
   const status = document.createElement("small");
   status.textContent = sidebarStatusLabel(state);
@@ -131,6 +139,10 @@ function createSidebarRuntimeCard(state: AppState): HTMLDivElement {
 }
 
 function sidebarStatusTone(state: AppState): "Attention" | "Ready" | "Running" | "Waiting" {
+  if (isOpeningCodexCli(state)) {
+    return "Running";
+  }
+
   if (state.runtimeStatus === "Ready") {
     return "Ready";
   }
@@ -147,36 +159,45 @@ function sidebarStatusTone(state: AppState): "Attention" | "Ready" | "Running" |
 }
 
 function sidebarStatusLabel(state: AppState): string {
+  if (isOpeningCodexCli(state)) {
+    return translate("sidebar.status.openingCli");
+  }
+
   if (state.runtimeStatus === "Ready") {
-    return "Prioridade alta";
+    return translate("sidebar.status.highPriority");
   }
 
   if (state.runtimeStatus === "Opening") {
-    return "Abrindo Codex";
+    return translate("sidebar.status.opening");
   }
 
   switch (state.codexStatus.state) {
     case "Checking":
-      return "Verificando instalacao";
+      return translate("sidebar.status.checking");
     case "Found":
-      return "Codex instalado";
+      return translate("sidebar.status.installed");
     case "NotFound":
-      return "Codex nao encontrado";
+      return translate("sidebar.status.notFound");
     case "Failed":
-      return "Atencao necessaria";
+      return translate("sidebar.status.attention");
     case "Unchecked":
-      return "Aguardando verificacao";
+      return translate("sidebar.status.waiting");
   }
+}
+
+function isOpeningCodexCli(state: AppState): boolean {
+  return state.actionStatus.state === "Running" &&
+    state.actionStatus.label === translate("cli.opening");
 }
 
 function sectionTitle(section: AppSection): string {
   switch (section) {
     case "Processes":
-      return "Processos e prioridade";
+      return translate("section.processes");
     case "Cleanup":
-      return "Limpeza";
+      return translate("section.cleanup");
     case "Uninstall":
-      return "Desinstalacao";
+      return translate("section.uninstall");
   }
 }
 
@@ -189,6 +210,8 @@ function createActiveSection({
   onConsoleClear,
   onConsoleCopy,
   onOpenCodex,
+  onOpenCodexCli,
+  onCodexCliRefresh,
   onUninstallCodex,
 }: Omit<ShellProps, "onSelectSection">): HTMLElementTagNameMap["section"] {
   switch (state.activeSection) {
@@ -199,6 +222,8 @@ function createActiveSection({
         onConsoleClear,
         onConsoleCopy,
         onOpenCodex,
+        onOpenCodexCli,
+        onCodexCliRefresh,
       });
     case "Cleanup":
       return createCleanupSection({
@@ -221,6 +246,8 @@ function createProcessesSection({
   onConsoleClear,
   onConsoleCopy,
   onOpenCodex,
+  onOpenCodexCli,
+  onCodexCliRefresh,
 }: Pick<
   ShellProps,
   | "state"
@@ -228,6 +255,8 @@ function createProcessesSection({
   | "onConsoleClear"
   | "onConsoleCopy"
   | "onOpenCodex"
+  | "onOpenCodexCli"
+  | "onCodexCliRefresh"
 >): HTMLElementTagNameMap["section"] {
   const panel = createControlSurface();
 
@@ -241,6 +270,12 @@ function createProcessesSection({
       onRefresh: onCodexRefresh,
       onOpenCodex,
       runtimeStatus: state.runtimeStatus,
+    }),
+    createCodexCliPanel({
+      actionStatus: state.actionStatus,
+      status: state.codexCliStatus,
+      onOpen: onOpenCodexCli,
+      onRefresh: onCodexCliRefresh,
     }),
     createCodexConsolePanel({
       messages: state.consoleMessages,

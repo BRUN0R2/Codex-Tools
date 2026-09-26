@@ -7,8 +7,6 @@ export type CodexCleanupTarget = Readonly<{
   freedBytes: number;
 }>;
 
-export const CODEX_CLEANUP_ACTION_LABEL = "Limpando Codex";
-
 export type CodexCleanupReport = Readonly<{
   codexHomePath: string;
   removedThreadCount: number;

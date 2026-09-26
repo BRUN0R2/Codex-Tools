@@ -1,18 +1,14 @@
 import type { ActionStatus } from "../Domain/ActionStatus";
-import {
-  CODEX_CLEANUP_ACTION_LABEL,
-  type CodexCleanupReport,
-  type CodexCleanupTarget,
-} from "../Domain/CodexCleanup";
+import type { CodexCleanupReport, CodexCleanupTarget } from "../Domain/CodexCleanup";
+import { formatBytes } from "../i18n/format";
+import { translate, translatePlural } from "../i18n/catalog";
+import { translateCleanupDiagnostic, translateCleanupTargetName } from "../i18n/diagnostics";
 
 export type CodexCleanupPanelProps = Readonly<{
   actionStatus: ActionStatus;
   cleanupReport: CodexCleanupReport | null;
   onClean: () => void;
 }>;
-
-const BYTE_UNITS: readonly string[] = ["B", "KB", "MB", "GB"];
-const BYTES_PER_UNIT = 1024;
 
 type CleanupSummaryValue = readonly [label: string, value: string];
 
@@ -29,14 +25,14 @@ export function createCodexCleanupPanel({
 
   const title = document.createElement("h2");
   title.className = "SectionTitle";
-  title.textContent = "Limpeza";
+  title.textContent = translate("cleanup.title");
 
   const heading = document.createElement("div");
   heading.className = "SectionHeading";
 
   const description = document.createElement("p");
   description.className = "SectionDescription";
-  description.textContent = "Remova dados temporarios e historico local com seguranca.";
+  description.textContent = translate("cleanup.description");
   heading.append(title, description);
 
   const cleanButton = document.createElement("button");
@@ -44,9 +40,9 @@ export function createCodexCleanupPanel({
   cleanButton.type = "button";
   cleanButton.disabled = actionStatus.state === "Running";
   cleanButton.textContent =
-    actionStatus.state === "Running" && actionStatus.label === CODEX_CLEANUP_ACTION_LABEL
-      ? "Limpando"
-      : "Limpar agora";
+    actionStatus.state === "Running" && actionStatus.label === translate("cleanup.cleaning")
+      ? translate("cleanup.cleaning")
+      : translate("cleanup.clean");
   cleanButton.addEventListener("click", onClean);
 
   header.append(heading, cleanButton);
@@ -71,16 +67,16 @@ function createCleanupSummary(
 
   const values: readonly CleanupSummaryValue[] = cleanupReport === null
     ? [
-        ["Conversas", "-"],
-        ["Arquivos", "-"],
-        ["Pastas", "-"],
-        ["Liberado", "-"],
+        [translate("cleanup.threads"), "-"],
+        [translate("cleanup.files"), "-"],
+        [translate("cleanup.folders"), "-"],
+        [translate("cleanup.freed"), "-"],
       ]
     : [
-        ["Conversas", cleanupReport.removedThreadCount.toString()],
-        ["Arquivos", cleanupReport.removedFileCount.toString()],
-        ["Pastas", cleanupReport.removedDirectoryCount.toString()],
-        ["Liberado", formatBytes(cleanupReport.freedBytes)],
+        [translate("cleanup.threads"), cleanupReport.removedThreadCount.toString()],
+        [translate("cleanup.files"), cleanupReport.removedFileCount.toString()],
+        [translate("cleanup.folders"), cleanupReport.removedDirectoryCount.toString()],
+        [translate("cleanup.freed"), formatBytes(cleanupReport.freedBytes)],
       ];
 
   for (const [label, value] of values) {
@@ -112,7 +108,7 @@ function createCleanupTargets(
 
     const name = document.createElement("span");
     name.className = "CleanupTargetName";
-    name.textContent = target.name;
+    name.textContent = translateCleanupTargetName(target.name);
 
     const result = document.createElement("span");
     result.className = "CleanupTargetResult";
@@ -125,7 +121,7 @@ function createCleanupTargets(
   if (section.childElementCount === 0) {
     const empty = document.createElement("p");
     empty.className = "CleanupEmptyState";
-    empty.textContent = "Nada removido.";
+    empty.textContent = translate("cleanup.empty");
     section.append(empty);
   }
 
@@ -138,7 +134,7 @@ function createWarningList(warnings: readonly string[]): HTMLElementTagNameMap["
 
   for (const warning of warnings) {
     const item = document.createElement("p");
-    item.textContent = warning;
+    item.textContent = translateCleanupDiagnostic(warning);
     section.append(item);
   }
 
@@ -159,19 +155,27 @@ function formatTargetResult(target: CodexCleanupTarget): string {
   const parts: string[] = [];
 
   if (target.removedThreadCount > 0) {
-    parts.push(`${target.removedThreadCount} conversa(s)`);
+    parts.push(translatePlural("cleanup.threadCount", target.removedThreadCount, {
+      count: target.removedThreadCount,
+    }));
   }
 
   if (target.removedGlobalStateReferenceCount > 0) {
-    parts.push(`${target.removedGlobalStateReferenceCount} referencia(s)`);
+    parts.push(translatePlural("cleanup.referenceCount", target.removedGlobalStateReferenceCount, {
+      count: target.removedGlobalStateReferenceCount,
+    }));
   }
 
   if (target.removedFileCount > 0) {
-    parts.push(`${target.removedFileCount} arquivo(s)`);
+    parts.push(translatePlural("cleanup.fileCount", target.removedFileCount, {
+      count: target.removedFileCount,
+    }));
   }
 
   if (target.removedDirectoryCount > 0) {
-    parts.push(`${target.removedDirectoryCount} pasta(s)`);
+    parts.push(translatePlural("cleanup.folderCount", target.removedDirectoryCount, {
+      count: target.removedDirectoryCount,
+    }));
   }
 
   if (target.freedBytes > 0) {
@@ -179,17 +183,4 @@ function formatTargetResult(target: CodexCleanupTarget): string {
   }
 
   return parts.join(" | ");
-}
-
-function formatBytes(bytes: number): string {
-  let value = bytes;
-  let unitIndex = 0;
-
-  while (value >= BYTES_PER_UNIT && unitIndex < BYTE_UNITS.length - 1) {
-    value /= BYTES_PER_UNIT;
-    unitIndex += 1;
-  }
-
-  const fractionDigits = unitIndex === 0 ? 0 : 2;
-  return `${value.toFixed(fractionDigits)} ${BYTE_UNITS[unitIndex]}`;
 }

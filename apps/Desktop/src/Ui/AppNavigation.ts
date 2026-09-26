@@ -1,4 +1,5 @@
 import type { AppSection } from "../Domain/AppSection";
+import { translate } from "../i18n/catalog";
 import {
   createProcessesIcon,
   createCleanupIcon,
@@ -12,22 +13,22 @@ export type AppNavigationProps = Readonly<{
 
 const NAVIGATION_ITEMS: readonly Readonly<{
   icon: () => SVGSVGElement;
-  label: string;
+  labelKey: "navigation.processes" | "navigation.cleanup" | "navigation.uninstall";
   section: AppSection;
 }>[] = [
   {
     icon: createProcessesIcon,
-    label: "Processos",
+    labelKey: "navigation.processes",
     section: "Processes",
   },
   {
     icon: createCleanupIcon,
-    label: "Limpeza",
+    labelKey: "navigation.cleanup",
     section: "Cleanup",
   },
   {
     icon: createUninstallIcon,
-    label: "Desinstalacao",
+    labelKey: "navigation.uninstall",
     section: "Uninstall",
   },
 ];
@@ -38,7 +39,7 @@ export function createAppNavigation({
 }: AppNavigationProps): HTMLElementTagNameMap["nav"] {
   const navigation = document.createElement("nav");
   navigation.className = "AppNavigation";
-  navigation.setAttribute("aria-label", "Navegacao principal");
+  navigation.setAttribute("aria-label", translate("app.navigationLabel"));
 
   for (const item of NAVIGATION_ITEMS) {
     const button = document.createElement("button");
@@ -47,7 +48,7 @@ export function createAppNavigation({
       isActive ? "AppNavigationButton IsActive" : "AppNavigationButton";
     button.type = "button";
     const label = document.createElement("span");
-    label.textContent = item.label;
+    label.textContent = translate(item.labelKey);
 
     button.append(item.icon(), label);
     if (isActive) {

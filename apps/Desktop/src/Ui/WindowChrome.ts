@@ -1,5 +1,6 @@
 import { isTauri } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
+import { translate } from "../i18n/catalog";
 
 type WindowAction = "close" | "minimize" | "toggleMaximize";
 
@@ -17,13 +18,13 @@ export function createWindowChrome(): HTMLDivElement {
   const controls = document.createElement("div");
   controls.className = "WindowChromeControls";
   controls.append(
-    createWindowControl("Minimizar janela", "minimize", createMinimizeIcon()),
+    createWindowControl(translate("window.minimize"), "minimize", createMinimizeIcon()),
     createWindowControl(
-      "Maximizar ou restaurar janela",
+      translate("window.maximize"),
       "toggleMaximize",
       createMaximizeIcon()
     ),
-    createWindowControl("Fechar janela", "close", createCloseIcon(), true)
+    createWindowControl(translate("window.close"), "close", createCloseIcon(), true)
   );
 
   chrome.append(dragRegion, controls);

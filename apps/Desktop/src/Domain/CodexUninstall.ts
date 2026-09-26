@@ -6,8 +6,6 @@ export type CodexUninstallTarget = Readonly<{
   details: string;
 }>;
 
-export const CODEX_UNINSTALL_ACTION_LABEL = "Desinstalando Codex";
-
 export type CodexUninstallReport = Readonly<{
   removedFileCount: number;
   removedDirectoryCount: number;

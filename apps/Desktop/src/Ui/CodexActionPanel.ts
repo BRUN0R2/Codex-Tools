@@ -2,6 +2,7 @@ import type { ActionStatus } from "../Domain/ActionStatus";
 import type { CodexStatus } from "../Domain/CodexInstallation";
 import type { RuntimeStatus } from "../Domain/RuntimeStatus";
 import { createLaunchIcon, createRefreshIcon } from "./ApplicationIcons";
+import { translate } from "../i18n/catalog";
 
 export type CodexActionPanelProps = Readonly<{
   actionStatus: ActionStatus;
@@ -29,17 +30,19 @@ export function createCodexActionPanel({
 
   const title = document.createElement("h2");
   title.className = "SectionTitle";
-  title.textContent = "Controle do Codex";
+  title.textContent = translate("action.title");
 
   const description = document.createElement("p");
   description.className = "SectionDescription";
-  description.textContent = createControlDescription();
+  description.textContent = translate("action.description");
   heading.append(title, description);
 
   const actions = document.createElement("div");
   actions.className = "CodexActionButtons";
 
-  const refreshLabel = codexStatus.state === "Checking" ? "Verificando" : "Verificar";
+  const refreshLabel = codexStatus.state === "Checking"
+    ? translate("action.checking")
+    : translate("action.refresh");
   const refreshCodexButton = createActionButton(
     "SecondaryButton",
     refreshLabel,
@@ -50,8 +53,8 @@ export function createCodexActionPanel({
 
   const isOpeningCodex = runtimeStatus === "Opening";
   const openLabel = isOpeningCodex
-    ? "Abrindo Codex como administrador"
-    : "Abrir Codex como administrador";
+    ? translate("action.openingDesktop")
+    : translate("action.openDesktop");
   const openCodexButton = createActionButton(
     "PrimaryButton",
     openLabel,
@@ -104,10 +107,6 @@ function canRefreshCodex(codexStatus: CodexStatus): boolean {
   return codexStatus.state !== "Checking";
 }
 
-function createControlDescription(): string {
-  return "Abre uma sessao administrativa com perfil proprio, preservando a instancia atual.";
-}
-
 function canOpenCodex(
   codexStatus: CodexStatus,
   actionStatus: ActionStatus,
@@ -123,7 +122,17 @@ function canOpenCodex(
 function createRuntimeStatusElement(runtimeStatus: RuntimeStatus): HTMLParagraphElement {
   const element = document.createElement("p");
   element.className = `RuntimeStatus RuntimeStatus--${runtimeStatus}`;
-  element.textContent = `Prioridade: ${formatRuntimeStatus(runtimeStatus)}`;
+  switch (runtimeStatus) {
+    case "Waiting":
+      element.textContent = translate("action.waitingStatus");
+      break;
+    case "Opening":
+      element.textContent = translate("action.openingStatus");
+      break;
+    case "Ready":
+      element.textContent = translate("action.readyStatus");
+      break;
+  }
   return element;
 }
 
@@ -137,26 +146,15 @@ function createActionFeedbackElement(actionStatus: ActionStatus): HTMLParagraphE
 
   switch (actionStatus.state) {
     case "Running":
-      element.textContent = `${actionStatus.label}...`;
+      element.textContent = translate("action.runningFeedback", { label: actionStatus.label });
       break;
     case "Succeeded":
       element.textContent = actionStatus.message;
       break;
     case "Failed":
-      element.textContent = `Erro: ${actionStatus.message}`;
+      element.textContent = translate("action.errorPrefix", { message: actionStatus.message });
       break;
   }
 
   return element;
-}
-
-function formatRuntimeStatus(runtimeStatus: RuntimeStatus): string {
-  switch (runtimeStatus) {
-    case "Waiting":
-      return "esperando...";
-    case "Opening":
-      return "abrindo codex...";
-    case "Ready":
-      return "pronto.";
-  }
 }

@@ -18,7 +18,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             commands::codex::clean_codex_workspace,
             commands::codex::get_codex_status,
+            commands::codex::get_codex_cli_status,
             commands::codex::open_codex,
+            commands::codex::open_codex_cli,
             commands::codex::uninstall_codex_product
         ])
         .run(tauri::generate_context!())

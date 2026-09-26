@@ -1,4 +1,5 @@
 import type { CodexStatus } from "../Domain/CodexInstallation";
+import { translate } from "../i18n/catalog";
 
 export type CodexStatusPanelProps = Readonly<{
   status: CodexStatus;
@@ -15,7 +16,7 @@ export function createCodexStatusPanel({
 
   const eyebrow = document.createElement("p");
   eyebrow.className = "PanelEyebrow";
-  eyebrow.textContent = "Codex Desktop";
+  eyebrow.textContent = translate("status.desktop");
 
   const title = document.createElement("h2");
   title.className = "CodexStatusTitle";
@@ -44,28 +45,28 @@ export function createCodexStatusPanel({
 function createCodexStatusTitle(status: CodexStatus): string {
   switch (status.state) {
     case "Unchecked":
-      return "Aguardando verificacao";
+      return translate("status.waitingTitle");
     case "Checking":
-      return "Verificando instalacao";
+      return translate("status.checkingTitle");
     case "Found":
-      return "Codex localizado";
+      return translate("status.foundTitle");
     case "NotFound":
-      return "Codex nao encontrado";
+      return translate("status.notFoundTitle");
     case "Failed":
-      return "Falha ao verificar o Codex";
+      return translate("status.failedTitle");
   }
 }
 
 function createCodexStatusDetail(status: CodexStatus): string {
   switch (status.state) {
     case "Unchecked":
-      return "A verificacao automatica ainda nao foi concluida.";
+      return translate("status.waitingDetail");
     case "Checking":
-      return "Procurando a instalacao e os processos em execucao.";
+      return translate("status.checkingDetail");
     case "Found":
       return status.executablePath;
     case "NotFound":
-      return `${status.checkedPaths.length} caminhos verificados.`;
+      return translate("status.checkedPaths", { count: status.checkedPaths.length });
     case "Failed":
       return status.message;
   }
@@ -74,14 +75,14 @@ function createCodexStatusDetail(status: CodexStatus): string {
 function createCodexStatusBadge(status: CodexStatus): string {
   switch (status.state) {
     case "Unchecked":
-      return "Aguardando";
+      return translate("status.waitingBadge");
     case "Checking":
-      return "Verificando";
+      return translate("status.checkingBadge");
     case "Found":
-      return "Instalado";
+      return translate("status.installedBadge");
     case "NotFound":
-      return "Nao encontrado";
+      return translate("status.notFoundBadge");
     case "Failed":
-      return "Erro";
+      return translate("status.errorBadge");
   }
 }

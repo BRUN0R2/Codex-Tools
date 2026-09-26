@@ -26,6 +26,8 @@
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.
 - [x] Separar deteccao do desktop e dos binarios CLI do Codex.
+- [x] Detectar e abrir Codex CLI independente em um terminal novo.
+- [x] Estabilizar prioridade da CLI pelo PID iniciado sem exigir o Desktop.
 - [x] Detectar runtimes Codex hashados em `LOCALAPPDATA`.
 - [x] Reconhecer `ChatGPT.exe` como desktop apenas dentro do pacote Codex.
 - [x] Preservar a instancia desktop atual e sessoes CLI independentes ao abrir Codex.
@@ -51,6 +53,9 @@
 - [x] Exigir confirmacao em dois passos antes da desinstalacao total.
 - [x] Modernizar hierarquia visual, navegacao, estados e responsividade.
 - [x] Exibir `pronto` somente com todos os processos em prioridade alta.
+- [x] Detectar automaticamente portugues/ingles e usar ingles como fallback.
+- [x] Descobrir um JSON por idioma sem registro manual por arquivo.
+- [x] Localizar rotulos e mensagens operacionais da interface em ingles e pt-BR.
 
 ## Dependencias
 
@@ -64,6 +69,9 @@
 - [x] Validar backend Rust.
 - [x] Validar abas laterais e tela de limpeza no preview local.
 - [x] Compilar frontend e backend com a aba de desinstalacao.
+- [x] Compilar frontend com descoberta e validacao de catalogos JSON.
+- [x] Testar idioma exato, familia de idioma e fallback para ingles.
+- [x] Executar testes Rust de deteccao e estabilizacao da CLI.
 - [ ] Validar abertura do Codex em runtime.
 - [ ] Validar lista de processos apos o Codex carregar totalmente.
 - [ ] Validar desinstalacao total em runtime com Codex fechado.

@@ -1,4 +1,5 @@
 import type { ConsoleMessage } from "../Domain/CodexConsole";
+import { translate } from "../i18n/catalog";
 
 export type CodexConsolePanelProps = Readonly<{
   messages: readonly ConsoleMessage[];
@@ -22,24 +23,24 @@ export function createCodexConsolePanel({
 
   const title = document.createElement("h2");
   title.className = "SectionTitle";
-  title.textContent = "Atividade";
+  title.textContent = translate("console.title");
 
   const description = document.createElement("p");
   description.className = "SectionDescription";
-  description.textContent = "Processos, prioridade e diagnosticos do ultimo fluxo.";
+  description.textContent = translate("console.description");
   heading.append(title, description);
 
   const actions = document.createElement("div");
   actions.className = "CodexConsoleActions";
   actions.append(
-    createConsoleButton("Limpar", messages.length === 0, onClear),
-    createConsoleButton("Copiar", messages.length === 0, onCopy)
+    createConsoleButton(translate("console.clear"), messages.length === 0, onClear),
+    createConsoleButton(translate("console.copy"), messages.length === 0, onCopy)
   );
 
   const output = document.createElement("pre");
   output.className = "CodexConsoleOutput";
   output.setAttribute("aria-live", "polite");
-  output.textContent = messages.length === 0 ? "Console vazio." : messages.join("\n");
+  output.textContent = messages.length === 0 ? translate("console.empty") : messages.join("\n");
 
   header.append(heading, actions);
   panel.append(header, output);
