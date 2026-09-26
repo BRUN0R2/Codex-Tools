@@ -1,6 +1,6 @@
 # Technical Notes — Codex Tools
 
-Codex Tools is being rebuilt as a modern Windows utility.
+Codex Tools is a modern Windows desktop utility built with Tauri 2.
 
 ## Confirmed stack
 
@@ -13,7 +13,7 @@ Codex Tools is being rebuilt as a modern Windows utility.
 - Rust `1.98.0` (Windows installation used for current validation).
 - Node.js `26.10.0` (Windows installation used for validation).
 - npm `12.1.0` (Windows installation used for validation).
-- CMake `4.3.2`.
+- CMake `4.4.3` (installed version checked on 2026-09-26).
 - MSVC `14.51`.
 
 ## Decisions

@@ -83,6 +83,7 @@ The system must remain understandable months later without relying on historical
   * use an imperative verb
   * clearly describe the actual changes
 * Keep `docs/TODO.md` minimal, current, and actionable.
+* Write project documentation in English by default. Use other languages only for localized product content or when an exact source string must be preserved.
 * Never commit secrets, credentials, tokens, or private data.
 * Avoid files, dependencies, assets, logs, or tools without a real need.
 * Prefer a clean, working codebase over preserving obsolete compatibility.

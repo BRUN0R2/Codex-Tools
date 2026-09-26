@@ -46,6 +46,7 @@
 - [x] Split the interface into `Processes`, `Cleanup`, `Uninstall`, and `Settings` sidebar tabs.
 - [x] Unify Desktop/CLI launch behind one app selector and one launch button.
 - [x] Let users choose and save the interface language in `Settings`.
+- [ ] Localize cleanup and uninstall failure details so the English interface does not show Portuguese backend text.
 - [x] Distinguish the browser preview from the Tauri runtime and disable native actions outside the Windows app.
 - [x] Provide general cleanup through one button with an operational summary.
 - [x] Add an `Uninstall` tab for full removal of Codex data and package.
@@ -73,9 +74,8 @@
 - [x] Test manual language preference and fallback when the saved preference is unavailable.
 - [x] Build the native CLI launch with a console and initial high priority.
 - [x] Run Rust tests for CLI detection and priority stabilization.
-- [x] Confirm the CLI remains active in an elevated console with `--no-daemon`.
 - [ ] Validate opening Codex at runtime.
-- [ ] Validate opening the CLI from the updated build's panel.
+- [ ] Validate the CLI launch from the current build and confirm the elevated process remains active with `--no-daemon`.
 - [ ] Validate the process list after Codex finishes loading.
 - [ ] Validate full uninstallation at runtime with Codex closed.
 

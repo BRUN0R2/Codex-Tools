@@ -18,7 +18,7 @@ General cleanup operates on shared data under `.codex` and is blocked while any 
 
 ## Languages
 
-Under `Settings > Language`, choose `Automatic (system language)`, `English`, or `Português (Brasil)`. The change takes effect immediately and is saved in the WebView's local storage. In automatic mode, the interface selects the best available language from the WebView preferences. It tries an exact match first, then another variant of the same language, and uses English when no compatible catalog is available. A saved preference for a removed catalog returns to automatic mode. Missing keys in a catalog use the English translation.
+Under `Settings > Language`, choose `Automatic (system language)`, `English`, or `Brazilian Portuguese`. The change takes effect immediately and is saved in the WebView's local storage. In automatic mode, the interface selects the best available language from the WebView preferences. It tries an exact match first, then another variant of the same language, and uses English when no compatible catalog is available. A saved preference for a removed catalog returns to automatic mode. Missing keys in a catalog use the English translation.
 
 To add another language, create only `src/i18n/locales/<canonical-locale>.json`. The file contains `locale`, `name`, `direction`, and `messages`; `locale` must match the file's canonical locale name, such as `fr-CA`. The loader discovers JSON files automatically and validates keys and placeholders against `en.json`. There is no need to register the language in another file or change code.
 
@@ -28,7 +28,7 @@ Codex Tools requests administrator permission to adjust the priority of Codex pr
 
 Codex Tools reports success only when it finds an elevated `ChatGPT.exe` from the package with an elevated `codex.exe app-server` child. It then stabilizes high priority and shows each process token in the console. Some Chromium helper processes may retain a normal token.
 
-With MSIX version `26.924.2738.0`, directly running `ChatGPT.exe` with `runas` created an elevated token without package identity and ended with `The process has no package identity` (`O processo nao tem identificador de pacote`). The `shell:AppsFolder` entry preserved the MSIX identity and started a working administrative session. That version's manifest does not declare `allowElevation`; this field alone does not describe the actual result of activation through `shell:AppsFolder` on this installation.
+With MSIX version `26.924.2738.0`, directly running `ChatGPT.exe` with `runas` created an elevated token without package identity and ended with the error `The process has no package identity`. The `shell:AppsFolder` entry preserved the MSIX identity and started a working administrative session. That version's manifest does not declare `allowElevation`; this field alone does not describe the actual result of activation through `shell:AppsFolder` on this installation.
 
 To repeat the tests without closing the current instance, use `scripts/probe-codex-elevation.ps1` with `-InspectOnly` or with `-LaunchMode AppsFolderRunAsArgs -IsolatedProfile`. The script measures the token and package identity of new processes; `RunAs` uses the direct executable only as a diagnostic comparison.
 
