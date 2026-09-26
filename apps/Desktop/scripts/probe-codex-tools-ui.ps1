@@ -34,7 +34,7 @@ try {
     if ($InvokeAdminLaunch) {
         $button = @($elements | Where-Object {
             $_.Current.ControlType -eq [System.Windows.Automation.ControlType]::Button -and
-            $_.Current.Name -eq 'Abrir Codex como administrador'
+            $_.Current.Name -eq 'Abrir como administrador'
         }) | Select-Object -First 1
         if ($null -eq $button) {
             throw 'The administrator launch button was not found.'

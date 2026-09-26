@@ -1,4 +1,9 @@
-import { canonicalizeLocale, resolveLocaleCatalog } from "./locale-selection";
+import {
+  canonicalizeLocale,
+  resolveLocaleCatalog,
+  resolveLocalePreference,
+  type LocalePreference,
+} from "./locale-selection";
 
 type CatalogDirection = "ltr" | "rtl";
 
@@ -13,6 +18,7 @@ type EnglishCatalog = typeof import("./locales/en.json");
 export type TranslationKey = keyof EnglishCatalog["messages"];
 
 const DEFAULT_LOCALE = "en";
+const LOCALE_STORAGE_KEY = "codex-tools.locale";
 const MAXIMUM_LOCALE_LENGTH = 35;
 const MAXIMUM_CATALOG_NAME_LENGTH = 80;
 const catalogModules = import.meta.glob<unknown>("./locales/*.json", {
@@ -20,21 +26,68 @@ const catalogModules = import.meta.glob<unknown>("./locales/*.json", {
   import: "default",
 });
 const catalogs = decodeCatalogs(catalogModules);
-const englishCatalog = catalogs.get(DEFAULT_LOCALE);
+const englishCatalog = requiredEnglishCatalog();
 
-if (englishCatalog === undefined) {
-  throw new Error(`The required ${DEFAULT_LOCALE}.json translation catalog is missing.`);
+let localeStorageIssue = false;
+let localePreference = readLocalePreference();
+export let activeCatalog = selectCatalog(localePreference);
+let activeMessages = mergedMessages(activeCatalog);
+
+export function availableCatalogs(): readonly Readonly<Pick<Catalog, "locale" | "name">>[] {
+  return [...catalogs.values()].map(({ locale, name }) => ({ locale, name }));
 }
 
-export const activeCatalog = resolveLocaleCatalog(
-  catalogs,
-  getRequestedLanguages(),
-  DEFAULT_LOCALE,
-);
-const activeMessages = Object.freeze({
-  ...englishCatalog.messages,
-  ...activeCatalog.messages,
-});
+export function getLocalePreference(): LocalePreference {
+  return localePreference;
+}
+
+export function hasLocaleStorageIssue(): boolean {
+  return localeStorageIssue;
+}
+
+export function setLocalePreference(preference: LocalePreference): void {
+  if (preference !== "auto" && !catalogs.has(preference)) {
+    throw new Error(`Translation locale ${preference} is unavailable.`);
+  }
+  localePreference = preference;
+  activeCatalog = selectCatalog(preference);
+  activeMessages = mergedMessages(activeCatalog);
+  applyDocumentLocale();
+
+  try {
+    localStorage.setItem(LOCALE_STORAGE_KEY, preference);
+    localeStorageIssue = false;
+  } catch {
+    localeStorageIssue = true;
+  }
+}
+
+function readLocalePreference(): LocalePreference {
+  try {
+    return resolveLocalePreference(catalogs, localStorage.getItem(LOCALE_STORAGE_KEY));
+  } catch {
+    localeStorageIssue = true;
+    return "auto";
+  }
+}
+
+function selectCatalog(preference: LocalePreference): Catalog {
+  return preference === "auto"
+    ? resolveLocaleCatalog(catalogs, getRequestedLanguages(), DEFAULT_LOCALE)
+    : catalogs.get(preference)!;
+}
+
+function mergedMessages(catalog: Catalog): Readonly<Record<string, string>> {
+  return Object.freeze({ ...englishCatalog.messages, ...catalog.messages });
+}
+
+function requiredEnglishCatalog(): Catalog {
+  const catalog = catalogs.get(DEFAULT_LOCALE);
+  if (catalog === undefined) {
+    throw new Error(`The required ${DEFAULT_LOCALE}.json translation catalog is missing.`);
+  }
+  return catalog;
+}
 
 export function translate(
   key: TranslationKey,

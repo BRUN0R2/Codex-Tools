@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { invoke, isTauri } from "@tauri-apps/api/core";
 import type { CommandFailure, CommandResult } from "../Domain/CommandResult";
 
 type BackendCommandFailure = Readonly<{
@@ -9,11 +9,22 @@ type BackendCommandFailure = Readonly<{
 type CommandArguments = Readonly<Record<string, unknown>>;
 
 const UNEXPECTED_ERROR_CODE = "UnexpectedError";
+const NATIVE_RUNTIME_UNAVAILABLE_CODE = "nativeRuntimeUnavailable";
 
 export async function invokeCommand<Response>(
   commandName: string,
   commandArguments?: CommandArguments
 ): Promise<CommandResult<Response>> {
+  if (!isTauri()) {
+    return {
+      ok: false,
+      error: {
+        code: NATIVE_RUNTIME_UNAVAILABLE_CODE,
+        message: "The Tauri runtime is unavailable in this browser.",
+      },
+    };
+  }
+
   try {
     return {
       ok: true,

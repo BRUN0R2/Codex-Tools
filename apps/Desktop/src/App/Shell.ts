@@ -1,27 +1,29 @@
 import type { AppState } from "./AppState";
 import type { AppSection } from "../Domain/AppSection";
+import type { CodexLaunchTarget } from "../Domain/CodexLaunchTarget";
 import { createAppNavigation } from "../Ui/AppNavigation";
 import { createBrandIcon } from "../Ui/ApplicationIcons";
-import { createCodexActionPanel } from "../Ui/CodexActionPanel";
-import { createCodexCliPanel } from "../Ui/CodexCliPanel";
+import { createCodexLaunchPanel } from "../Ui/CodexLaunchPanel";
 import { createCodexCleanupPanel } from "../Ui/CodexCleanupPanel";
 import { createCodexConsolePanel } from "../Ui/CodexConsolePanel";
 import { createCodexStatusPanel } from "../Ui/CodexStatusPanel";
 import { createCodexUninstallPanel } from "../Ui/CodexUninstallPanel";
+import { createSettingsPanel } from "../Ui/SettingsPanel";
 import { createWindowChrome } from "../Ui/WindowChrome";
 import { translate } from "../i18n/catalog";
+import type { LocalePreference } from "../i18n/locale-selection";
 
 type ShellProps = Readonly<{
   state: AppState;
   onArmUninstallConfirmation: () => void;
   onCancelUninstallConfirmation: () => void;
   onCleanCodex: () => void;
-  onCodexRefresh: () => void;
+  onRefreshSelected: () => void;
   onConsoleClear: () => void;
   onConsoleCopy: () => void;
-  onOpenCodex: () => void;
-  onOpenCodexCli: () => void;
-  onCodexCliRefresh: () => void;
+  onOpenSelected: () => void;
+  onSelectLaunchTarget: (target: CodexLaunchTarget) => void;
+  onSelectLocale: (preference: LocalePreference) => void;
   onSelectSection: (section: AppSection) => void;
   onUninstallCodex: () => void;
 }>;
@@ -44,12 +46,12 @@ export function createShell({
   onArmUninstallConfirmation,
   onCancelUninstallConfirmation,
   onCleanCodex,
-  onCodexRefresh,
+  onRefreshSelected,
   onConsoleClear,
   onConsoleCopy,
-  onOpenCodex,
-  onOpenCodexCli,
-  onCodexCliRefresh,
+  onOpenSelected,
+  onSelectLaunchTarget,
+  onSelectLocale,
   onSelectSection,
   onUninstallCodex,
 }: ShellProps): HTMLElementTagNameMap["section"] {
@@ -95,19 +97,27 @@ export function createShell({
     createTextElement("h1", "WorkspaceTitle", sectionTitle(state.activeSection))
   );
 
+  workspace.append(workspaceHeader);
+  if (!state.nativeRuntimeAvailable && (
+    state.activeSection === "Cleanup" || state.activeSection === "Uninstall"
+  )) {
+    const previewNotice = document.createElement("p");
+    previewNotice.className = "PreviewNotice";
+    previewNotice.textContent = translate("common.browserPreview");
+    workspace.append(previewNotice);
+  }
   workspace.append(
-    workspaceHeader,
     createActiveSection({
       state,
       onArmUninstallConfirmation,
       onCancelUninstallConfirmation,
       onCleanCodex,
-      onCodexRefresh,
+      onRefreshSelected,
       onConsoleClear,
       onConsoleCopy,
-      onOpenCodex,
-      onOpenCodexCli,
-      onCodexCliRefresh,
+      onOpenSelected,
+      onSelectLaunchTarget,
+      onSelectLocale,
       onUninstallCodex,
     })
   );
@@ -139,6 +149,9 @@ function createSidebarRuntimeCard(state: AppState): HTMLDivElement {
 }
 
 function sidebarStatusTone(state: AppState): "Attention" | "Ready" | "Running" | "Waiting" {
+  if (!state.nativeRuntimeAvailable) {
+    return "Waiting";
+  }
   if (isOpeningCodexCli(state)) {
     return "Running";
   }
@@ -159,6 +172,9 @@ function sidebarStatusTone(state: AppState): "Attention" | "Ready" | "Running" |
 }
 
 function sidebarStatusLabel(state: AppState): string {
+  if (!state.nativeRuntimeAvailable) {
+    return translate("sidebar.status.browserPreview");
+  }
   if (isOpeningCodexCli(state)) {
     return translate("sidebar.status.openingCli");
   }
@@ -187,7 +203,7 @@ function sidebarStatusLabel(state: AppState): string {
 
 function isOpeningCodexCli(state: AppState): boolean {
   return state.actionStatus.state === "Running" &&
-    state.actionStatus.label === translate("cli.opening");
+    state.actionStatus.label === "cli.opening";
 }
 
 function sectionTitle(section: AppSection): string {
@@ -198,6 +214,8 @@ function sectionTitle(section: AppSection): string {
       return translate("section.cleanup");
     case "Uninstall":
       return translate("section.uninstall");
+    case "Settings":
+      return translate("section.settings");
   }
 }
 
@@ -206,24 +224,23 @@ function createActiveSection({
   onArmUninstallConfirmation,
   onCancelUninstallConfirmation,
   onCleanCodex,
-  onCodexRefresh,
+  onRefreshSelected,
   onConsoleClear,
   onConsoleCopy,
-  onOpenCodex,
-  onOpenCodexCli,
-  onCodexCliRefresh,
+  onOpenSelected,
+  onSelectLaunchTarget,
+  onSelectLocale,
   onUninstallCodex,
 }: Omit<ShellProps, "onSelectSection">): HTMLElementTagNameMap["section"] {
   switch (state.activeSection) {
     case "Processes":
       return createProcessesSection({
         state,
-        onCodexRefresh,
+        onRefreshSelected,
         onConsoleClear,
         onConsoleCopy,
-        onOpenCodex,
-        onOpenCodexCli,
-        onCodexCliRefresh,
+        onOpenSelected,
+        onSelectLaunchTarget,
       });
     case "Cleanup":
       return createCleanupSection({
@@ -237,45 +254,45 @@ function createActiveSection({
         onCancelUninstallConfirmation,
         onUninstallCodex,
       });
+    case "Settings":
+      return createSettingsSection({ onSelectLocale });
   }
 }
 
 function createProcessesSection({
   state,
-  onCodexRefresh,
+  onRefreshSelected,
   onConsoleClear,
   onConsoleCopy,
-  onOpenCodex,
-  onOpenCodexCli,
-  onCodexCliRefresh,
+  onOpenSelected,
+  onSelectLaunchTarget,
 }: Pick<
   ShellProps,
   | "state"
-  | "onCodexRefresh"
+  | "onRefreshSelected"
   | "onConsoleClear"
   | "onConsoleCopy"
-  | "onOpenCodex"
-  | "onOpenCodexCli"
-  | "onCodexCliRefresh"
+  | "onOpenSelected"
+  | "onSelectLaunchTarget"
 >): HTMLElementTagNameMap["section"] {
   const panel = createControlSurface();
 
   panel.append(
     createCodexStatusPanel({
-      status: state.codexStatus,
+      nativeRuntimeAvailable: state.nativeRuntimeAvailable,
+      status: state.selectedLaunchTarget === "desktop" ? state.codexStatus : state.codexCliStatus,
+      target: state.selectedLaunchTarget,
     }),
-    createCodexActionPanel({
+    createCodexLaunchPanel({
       actionStatus: state.actionStatus,
       codexStatus: state.codexStatus,
-      onRefresh: onCodexRefresh,
-      onOpenCodex,
+      cliStatus: state.codexCliStatus,
+      nativeRuntimeAvailable: state.nativeRuntimeAvailable,
+      onRefresh: onRefreshSelected,
+      onOpen: onOpenSelected,
+      onSelectTarget: onSelectLaunchTarget,
       runtimeStatus: state.runtimeStatus,
-    }),
-    createCodexCliPanel({
-      actionStatus: state.actionStatus,
-      status: state.codexCliStatus,
-      onOpen: onOpenCodexCli,
-      onRefresh: onCodexCliRefresh,
+      selectedTarget: state.selectedLaunchTarget,
     }),
     createCodexConsolePanel({
       messages: state.consoleMessages,
@@ -284,6 +301,14 @@ function createProcessesSection({
     })
   );
 
+  return panel;
+}
+
+function createSettingsSection({
+  onSelectLocale,
+}: Pick<ShellProps, "onSelectLocale">): HTMLElementTagNameMap["section"] {
+  const panel = createControlSurface();
+  panel.append(createSettingsPanel(onSelectLocale));
   return panel;
 }
 
@@ -297,6 +322,7 @@ function createCleanupSection({
     createCodexCleanupPanel({
       actionStatus: state.actionStatus,
       cleanupReport: state.cleanupReport,
+      nativeRuntimeAvailable: state.nativeRuntimeAvailable,
       onClean: onCleanCodex,
     })
   );
@@ -322,6 +348,7 @@ function createUninstallSection({
     createCodexUninstallPanel({
       actionStatus: state.actionStatus,
       confirmationArmed: state.uninstallConfirmationArmed,
+      nativeRuntimeAvailable: state.nativeRuntimeAvailable,
       uninstallReport: state.uninstallReport,
       onArmConfirmation: onArmUninstallConfirmation,
       onCancelConfirmation: onCancelUninstallConfirmation,

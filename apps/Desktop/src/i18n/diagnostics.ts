@@ -8,6 +8,8 @@ export function translateCommandFailure(
   context: CommandFailureContext,
 ): string {
   switch (failure.code) {
+    case "nativeRuntimeUnavailable":
+      return translate("common.nativeRuntimeUnavailable");
     case "codexNotFound":
       return context === "cli" ? translate("cli.notFound") : translate("action.desktopNotFound");
     case "cleanupBlocked":

@@ -1,3 +1,4 @@
+import { isTauri } from "@tauri-apps/api/core";
 import {
   cleanCodexWorkspace,
   getCodexCliStatus,
@@ -7,12 +8,14 @@ import {
   uninstallCodexProduct,
 } from "../Backend/CodexCommands";
 import type { AppSection } from "../Domain/AppSection";
+import type { CodexLaunchTarget } from "../Domain/CodexLaunchTarget";
 import { codexStatusesAreEqual } from "../Domain/CodexInstallation";
 import type { CodexCleanupReport } from "../Domain/CodexCleanup";
 import type { CodexUninstallReport } from "../Domain/CodexUninstall";
 import type { CodexLaunchResponse } from "../Domain/CodexLaunch";
 import { formatBytes } from "../i18n/format";
-import { translate, translatePlural } from "../i18n/catalog";
+import { setLocalePreference, translate, translatePlural } from "../i18n/catalog";
+import type { LocalePreference } from "../i18n/locale-selection";
 import { translateCommandFailure } from "../i18n/diagnostics";
 import {
   INITIAL_APP_STATE,
@@ -27,10 +30,12 @@ import {
   setFailedActionStatus,
   setFailedCodexStatus,
   setRunningActionStatus,
+  setSelectedLaunchTarget,
   setSucceededActionStatus,
   setUninstallConfirmationArmed,
   setUninstallReport,
   setWaitingRuntimeStatus,
+  retranslateConsoleMessages,
   type AppState,
 } from "./AppState";
 import { createShell } from "./Shell";
@@ -39,13 +44,16 @@ import {
   priorityStabilizationHasFinished,
 } from "../Domain/PriorityStabilization";
 
-const OPEN_CODEX_ACTION_LABEL = translate("sidebar.status.opening");
-const OPEN_CODEX_CLI_ACTION_LABEL = translate("cli.opening");
 const CODEX_OPEN_STATUS_POLL_INTERVAL_MILLISECONDS = 500;
 const CODEX_OPEN_STATUS_POLL_BUDGET_MILLISECONDS = 35_000;
 
 export function mountApp(root: HTMLElement): void {
-  let state: AppState = INITIAL_APP_STATE;
+  const nativeRuntimeAvailable = isTauri();
+  let state: AppState = {
+    ...INITIAL_APP_STATE,
+    nativeRuntimeAvailable,
+    consoleMessages: nativeRuntimeAvailable ? INITIAL_APP_STATE.consoleMessages : [],
+  };
   let openingMonitorVersion = 0;
 
   function render(): void {
@@ -61,11 +69,8 @@ export function mountApp(root: HTMLElement): void {
         onCleanCodex(): void {
           void cleanCodex();
         },
-        onCodexRefresh(): void {
-          void refreshCodexStatus();
-        },
-        onCodexCliRefresh(): void {
-          void refreshCodexCliStatus();
+        onRefreshSelected(): void {
+          void refreshSelectedCodexStatus();
         },
         onConsoleClear(): void {
           clearConsole();
@@ -73,11 +78,17 @@ export function mountApp(root: HTMLElement): void {
         onConsoleCopy(): void {
           void copyConsole();
         },
-        onOpenCodex(): void {
-          void launchCodex();
+        onOpenSelected(): void {
+          void launchSelectedCodex();
         },
-        onOpenCodexCli(): void {
-          void launchCodexCli();
+        onSelectLaunchTarget(target: CodexLaunchTarget): void {
+          state = setSelectedLaunchTarget(state, target);
+          render();
+        },
+        onSelectLocale(preference: LocalePreference): void {
+          setLocalePreference(preference);
+          state = retranslateConsoleMessages(state);
+          render();
         },
         onSelectSection(section: AppSection): void {
           selectSection(section);
@@ -92,6 +103,22 @@ export function mountApp(root: HTMLElement): void {
   function selectSection(section: AppSection): void {
     state = setActiveSection(state, section);
     render();
+  }
+
+  async function refreshSelectedCodexStatus(): Promise<void> {
+    if (state.selectedLaunchTarget === "desktop") {
+      await refreshCodexStatus();
+    } else {
+      await refreshCodexCliStatus();
+    }
+  }
+
+  async function launchSelectedCodex(): Promise<void> {
+    if (state.selectedLaunchTarget === "desktop") {
+      await launchCodex();
+    } else {
+      await launchCodexCli();
+    }
   }
 
   async function refreshCodexStatus(): Promise<void> {
@@ -145,7 +172,7 @@ export function mountApp(root: HTMLElement): void {
   async function launchCodex(): Promise<void> {
     const monitorVersion = openingMonitorVersion + 1;
     openingMonitorVersion = monitorVersion;
-    state = setRunningActionStatus(setOpeningRuntimeStatus(state), OPEN_CODEX_ACTION_LABEL);
+    state = setRunningActionStatus(setOpeningRuntimeStatus(state), "action.openingDesktop");
     render();
 
     const result = await openCodex();
@@ -168,7 +195,7 @@ export function mountApp(root: HTMLElement): void {
   async function launchCodexCli(): Promise<void> {
     const monitorVersion = openingMonitorVersion + 1;
     openingMonitorVersion = monitorVersion;
-    state = setRunningActionStatus(state, OPEN_CODEX_CLI_ACTION_LABEL);
+    state = setRunningActionStatus(state, "cli.opening");
     render();
 
     const result = await openCodexCli();
@@ -185,7 +212,7 @@ export function mountApp(root: HTMLElement): void {
   }
 
   async function cleanCodex(): Promise<void> {
-    state = setRunningActionStatus(state, translate("cleanup.cleaning"));
+    state = setRunningActionStatus(state, "cleanup.cleaning");
     render();
 
     const result = await cleanCodexWorkspace();
@@ -214,7 +241,7 @@ export function mountApp(root: HTMLElement): void {
   }
 
   async function uninstallCodex(): Promise<void> {
-    state = setRunningActionStatus(state, translate("uninstall.confirming"));
+    state = setRunningActionStatus(state, "uninstall.confirming");
     render();
 
     const result = await uninstallCodexProduct();
@@ -336,6 +363,8 @@ export function mountApp(root: HTMLElement): void {
   }
 
   render();
-  void refreshCodexStatus();
-  void refreshCodexCliStatus();
+  if (state.nativeRuntimeAvailable) {
+    void refreshCodexStatus();
+    void refreshCodexCliStatus();
+  }
 }

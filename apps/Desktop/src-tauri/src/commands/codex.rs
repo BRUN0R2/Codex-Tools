@@ -1,14 +1,11 @@
 use std::env;
 use std::fs;
-use std::os::windows::process::CommandExt;
 use std::path::PathBuf;
-use std::process::Command;
 use std::thread;
 use std::time::{Duration, Instant};
 
 use serde::Serialize;
 use tauri::State;
-use windows::Win32::System::Threading::CREATE_NEW_CONSOLE;
 
 use crate::contracts::{CommandError, CommandErrorCode};
 use crate::platform::codex_cleanup::{
@@ -20,7 +17,9 @@ use crate::platform::codex_uninstall::{
 use crate::platform::windows_codex::{
     codex_desktop_application_user_model_id, locate_codex_installation,
 };
-use crate::platform::windows_codex_cli::locate_codex_cli_installation;
+use crate::platform::windows_codex_cli::{
+    launch_codex_cli_in_console, locate_codex_cli_installation,
+};
 use crate::platform::windows_package_activation::launch_codex_desktop_as_administrator;
 use crate::platform::windows_package_capability::codex_package_allows_elevation;
 use crate::platform::windows_process::{
@@ -294,17 +293,13 @@ fn launch_codex_cli_with_high_priority(
         )
     })?;
     let working_directory = cli_working_directory(executable_path);
-    let child = Command::new(executable_path)
-        .current_dir(working_directory)
-        .creation_flags(CREATE_NEW_CONSOLE.0)
-        .spawn()
-        .map_err(|error| {
+    let process_id =
+        launch_codex_cli_in_console(executable_path, &working_directory).map_err(|error| {
             CommandError::new(
                 CommandErrorCode::WindowsApiFailed,
                 format!("Failed to open the Codex CLI in a new terminal: {error}"),
             )
         })?;
-    let process_id = child.id();
 
     start_cli_high_priority_stabilization(priority_stabilization, process_id).map_err(|error| {
         CommandError::new(

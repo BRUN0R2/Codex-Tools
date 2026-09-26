@@ -1,4 +1,16 @@
 export type LocaleCatalog = Readonly<{ locale: string }>;
+export type LocalePreference = "auto" | string;
+
+export function resolveLocalePreference<Catalog extends LocaleCatalog>(
+  catalogs: ReadonlyMap<string, Catalog>,
+  storedPreference: string | null,
+): LocalePreference {
+  if (storedPreference === null || storedPreference === "auto") return "auto";
+  const canonicalLocale = canonicalizeLocale(storedPreference);
+  return canonicalLocale !== null && catalogs.has(canonicalLocale)
+    ? canonicalLocale
+    : "auto";
+}
 
 export function resolveLocaleCatalog<Catalog extends LocaleCatalog>(
   catalogs: ReadonlyMap<string, Catalog>,

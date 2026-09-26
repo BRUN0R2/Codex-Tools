@@ -12,19 +12,19 @@ Na raiz do repositorio, execute `codex-tools.cmd` e escolha modo dev ou release.
 
 ## Codex Desktop e CLI
 
-A aba `Processos` detecta o pacote Codex Desktop e a instalacao independente do Codex CLI. A CLI e procurada em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` e nos diretorios do `PATH`. `Abrir CLI como administrador` inicia `codex.exe` em um novo terminal, usando a pasta do perfil do usuario como diretorio inicial. Como o Codex Tools precisa de elevacao para ajustar prioridades, a janela de terminal e a CLI iniciada tambem recebem o token elevado. O monitor acompanha o PID da CLI iniciada e ajusta a prioridade alta dos processos Codex.
+A aba `Processos` detecta o pacote Codex Desktop e a instalacao independente do Codex CLI. Um seletor `App` alterna entre Desktop e CLI; os botoes `Verificar` e `Abrir como administrador` atuam somente sobre a escolha atual. A CLI e procurada em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe` e nos diretorios do `PATH`. Ao abrir a CLI, o Windows cria uma nova janela de console com canais de entrada e saida proprios, a partir da pasta do perfil do usuario, e aplica prioridade alta desde o inicio do processo. O token elevado do Codex Tools e herdado pela CLI. O monitor acompanha o PID iniciado e confirma que ele continua ativo e em alta prioridade.
 
 A limpeza geral usa os dados compartilhados em `.codex` e bloqueia enquanto qualquer processo Codex estiver aberto, incluindo a CLI. A desinstalacao existente remove o pacote Desktop e dados Codex compartilhados; ela nao remove o executavel independente instalado pelo Codex CLI.
 
 ## Idiomas
 
-A interface escolhe automaticamente o melhor idioma disponivel a partir das preferencias de idioma do WebView. Os catalogos incluidos sao `en` e `pt-BR`. A busca tenta uma correspondencia exata, depois outra variante do mesmo idioma e usa ingles quando nao ha catalogo compativel. Chaves ausentes em um catalogo tambem usam a traducao inglesa.
+Em `Configuracoes > Idioma`, escolha `Automatico (idioma do sistema)`, `English` ou `Portugues (Brasil)`. A mudanca aparece imediatamente e fica salva no armazenamento local do WebView. No modo automatico, a interface escolhe o melhor idioma disponivel a partir das preferencias do WebView. A busca tenta uma correspondencia exata, depois outra variante do mesmo idioma e usa ingles quando nao ha catalogo compativel. Uma preferencia salva para um catalogo removido volta ao modo automatico. Chaves ausentes em um catalogo usam a traducao inglesa.
 
 Para adicionar outro idioma, crie somente `src/i18n/locales/<locale-canonico>.json`. O arquivo inclui `locale`, `name`, `direction` e `messages`; `locale` precisa corresponder ao nome canonico do arquivo, como `fr-CA`. O carregador descobre os JSON automaticamente e valida as chaves e os placeholders contra `en.json`. Nao e necessario registrar o idioma em outro arquivo ou alterar codigo.
 
 ## Elevacao e prioridade
 
-O Codex Tools solicita permissao de administrador para ajustar a prioridade dos processos Codex. O botao `Abrir Codex como administrador` usa a entrada `shell:AppsFolder` do pacote instalado com o verbo `runas` e os argumentos `--do-not-de-elevate` e `--user-data-dir`. O perfil administrativo fica em `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`; a primeira abertura pode exigir login nesse perfil. A instancia atual permanece aberta.
+O Codex Tools solicita permissao de administrador para ajustar a prioridade dos processos Codex. Ao selecionar `Codex Desktop`, o botao `Abrir como administrador` usa a entrada `shell:AppsFolder` do pacote instalado com o verbo `runas` e os argumentos `--do-not-de-elevate` e `--user-data-dir`. O perfil administrativo fica em `%LOCALAPPDATA%\CodexTools\CodexAdminProfile`; a primeira abertura pode exigir login nesse perfil. A instancia atual permanece aberta.
 
 O Codex Tools so informa sucesso quando encontra um `ChatGPT.exe` elevado do pacote com `codex.exe app-server` elevado como filho. Depois estabiliza a prioridade alta e mostra o token de cada processo no console. Alguns processos auxiliares do Chromium podem permanecer com token normal.
 
@@ -43,3 +43,5 @@ Dentro de `apps/Desktop`:
 - `npm run tauri build`
 
 `npm run build` tambem valida os tipos TypeScript e gera o frontend com todos os catalogos JSON descobertos.
+
+Abrir o servidor Vite diretamente em um navegador mostra uma previa da interface. A previa nao executa comandos nativos: verificacao, abertura, limpeza e desinstalacao ficam indisponiveis. Use `npm run tauri dev` ou a build Windows para validar essas acoes.

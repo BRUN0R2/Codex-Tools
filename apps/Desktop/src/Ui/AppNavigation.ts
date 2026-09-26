@@ -4,6 +4,7 @@ import {
   createProcessesIcon,
   createCleanupIcon,
   createUninstallIcon,
+  createSettingsIcon,
 } from "./ApplicationIcons";
 
 export type AppNavigationProps = Readonly<{
@@ -13,7 +14,7 @@ export type AppNavigationProps = Readonly<{
 
 const NAVIGATION_ITEMS: readonly Readonly<{
   icon: () => SVGSVGElement;
-  labelKey: "navigation.processes" | "navigation.cleanup" | "navigation.uninstall";
+  labelKey: "navigation.processes" | "navigation.cleanup" | "navigation.uninstall" | "navigation.settings";
   section: AppSection;
 }>[] = [
   {
@@ -30,6 +31,11 @@ const NAVIGATION_ITEMS: readonly Readonly<{
     icon: createUninstallIcon,
     labelKey: "navigation.uninstall",
     section: "Uninstall",
+  },
+  {
+    icon: createSettingsIcon,
+    labelKey: "navigation.settings",
+    section: "Settings",
   },
 ];
 

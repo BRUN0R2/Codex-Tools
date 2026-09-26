@@ -7,6 +7,7 @@ import { translateUninstallDiagnostic, translateUninstallTargetName } from "../i
 export type CodexUninstallPanelProps = Readonly<{
   actionStatus: ActionStatus;
   confirmationArmed: boolean;
+  nativeRuntimeAvailable: boolean;
   uninstallReport: CodexUninstallReport | null;
   onArmConfirmation: () => void;
   onCancelConfirmation: () => void;
@@ -18,6 +19,7 @@ type UninstallSummaryValue = readonly [label: string, value: string];
 export function createCodexUninstallPanel({
   actionStatus,
   confirmationArmed,
+  nativeRuntimeAvailable,
   uninstallReport,
   onArmConfirmation,
   onCancelConfirmation,
@@ -56,9 +58,9 @@ export function createCodexUninstallPanel({
     const confirmButton = document.createElement("button");
     confirmButton.className = "DangerButton";
     confirmButton.type = "button";
-    confirmButton.disabled = actionStatus.state === "Running";
+    confirmButton.disabled = !nativeRuntimeAvailable || actionStatus.state === "Running";
     confirmButton.textContent =
-      actionStatus.state === "Running" && actionStatus.label === translate("uninstall.confirming")
+      actionStatus.state === "Running" && actionStatus.label === "uninstall.confirming"
         ? translate("uninstall.confirming")
         : translate("uninstall.confirm");
     confirmButton.addEventListener("click", onUninstall);
@@ -68,7 +70,7 @@ export function createCodexUninstallPanel({
     const armButton = document.createElement("button");
     armButton.className = "DangerButton";
     armButton.type = "button";
-    armButton.disabled = actionStatus.state === "Running";
+    armButton.disabled = !nativeRuntimeAvailable || actionStatus.state === "Running";
     armButton.textContent = translate("uninstall.removeAll");
     armButton.addEventListener("click", onArmConfirmation);
     actions.append(armButton);

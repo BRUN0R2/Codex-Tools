@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { resolveLocaleCatalog } from "../../src/i18n/locale-selection.ts";
+import {
+  resolveLocaleCatalog,
+  resolveLocalePreference,
+} from "../../src/i18n/locale-selection.ts";
 
 const catalogs = new Map([
   ["en", { locale: "en", name: "English" }],
@@ -21,4 +24,17 @@ test("uses English when no supported language matches", () => {
 
 test("ignores invalid language identifiers and falls back to English", () => {
   assert.equal(resolveLocaleCatalog(catalogs, ["not_a_locale"], "en").locale, "en");
+});
+
+test("uses a supported saved language over the system language", () => {
+  const preference = resolveLocalePreference(catalogs, "pt-BR");
+  assert.equal(preference, "pt-BR");
+  assert.equal(catalogs.get(preference).locale, "pt-BR");
+});
+
+test("returns to automatic selection when a saved language is unavailable", () => {
+  assert.equal(resolveLocalePreference(catalogs, "fr-CA"), "auto");
+  assert.equal(resolveLocalePreference(catalogs, "invalid_locale"), "auto");
+  assert.equal(resolveLocalePreference(catalogs, null), "auto");
+  assert.equal(resolveLocaleCatalog(catalogs, ["pt-PT"], "en").locale, "pt-BR");
 });

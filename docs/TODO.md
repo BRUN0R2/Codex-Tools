@@ -26,7 +26,8 @@
 - [x] Exigir elevacao do Codex Tools antes da janela abrir.
 - [x] Listar processos Codex com prioridade atual e estado de administrador.
 - [x] Separar deteccao do desktop e dos binarios CLI do Codex.
-- [x] Detectar e abrir Codex CLI independente em um terminal novo.
+- [x] Detectar e abrir Codex CLI independente em um console novo com entrada e
+      saida proprias e prioridade alta desde a criacao.
 - [x] Estabilizar prioridade da CLI pelo PID iniciado sem exigir o Desktop.
 - [x] Detectar runtimes Codex hashados em `LOCALAPPDATA`.
 - [x] Reconhecer `ChatGPT.exe` como desktop apenas dentro do pacote Codex.
@@ -47,7 +48,12 @@
 - [x] Remover subtitulo duplicado abaixo de `Codex Tools`.
 - [x] Mostrar `Estatus` com estados `esperando`, `abrindo codex` e `pronto`.
 - [x] Exibir mensagens operacionais e diagnosticos de elevacao na interface.
-- [x] Separar a interface em abas laterais `Processos`, `Limpeza` e `Desinstalacao`.
+- [x] Separar a interface em abas laterais `Processos`, `Limpeza`,
+      `Desinstalacao` e `Configuracoes`.
+- [x] Unificar a abertura Desktop/CLI em um seletor de app e um botao de abertura.
+- [x] Permitir escolher e salvar o idioma da interface em `Configuracoes`.
+- [x] Distinguir a previa no navegador do runtime Tauri e desativar acoes nativas
+      fora do app Windows.
 - [x] Expor limpeza geral em um botao unico com resumo operacional.
 - [x] Adicionar aba `Desinstalacao` com remocao total de dados e pacote Codex.
 - [x] Exigir confirmacao em dois passos antes da desinstalacao total.
@@ -71,8 +77,11 @@
 - [x] Compilar frontend e backend com a aba de desinstalacao.
 - [x] Compilar frontend com descoberta e validacao de catalogos JSON.
 - [x] Testar idioma exato, familia de idioma e fallback para ingles.
+- [x] Testar preferencia manual e fallback de preferencia salva indisponivel.
+- [x] Compilar o lancamento nativo da CLI com console e prioridade inicial.
 - [x] Executar testes Rust de deteccao e estabilizacao da CLI.
 - [ ] Validar abertura do Codex em runtime.
+- [ ] Validar abertura da CLI elevada em runtime na build atualizada.
 - [ ] Validar lista de processos apos o Codex carregar totalmente.
 - [ ] Validar desinstalacao total em runtime com Codex fechado.
 

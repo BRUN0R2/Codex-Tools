@@ -54,6 +54,15 @@ export function createUninstallIcon(): SVGSVGElement {
   ]);
 }
 
+export function createSettingsIcon(): SVGSVGElement {
+  return createApplicationIcon([
+    "M4 7h16",
+    "M4 17h16",
+    "M9 4v6",
+    "M15 14v6",
+  ]);
+}
+
 export function createRefreshIcon(): SVGSVGElement {
   return createApplicationIcon([
     "M20 7v5h-5",

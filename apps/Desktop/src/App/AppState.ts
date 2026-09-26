@@ -6,6 +6,10 @@ import {
   type ActionStatus,
 } from "../Domain/ActionStatus";
 import { INITIAL_APP_SECTION, type AppSection } from "../Domain/AppSection";
+import {
+  INITIAL_CODEX_LAUNCH_TARGET,
+  type CodexLaunchTarget,
+} from "../Domain/CodexLaunchTarget";
 import type { CodexCleanupReport } from "../Domain/CodexCleanup";
 import {
   CHECKING_CODEX_CLI_STATUS,
@@ -30,6 +34,7 @@ import {
   createWaitingRuntimeStatus,
   type RuntimeStatus,
 } from "../Domain/RuntimeStatus";
+import type { TranslationKey } from "../i18n/catalog";
 
 export type AppState = Readonly<{
   actionStatus: ActionStatus;
@@ -38,7 +43,9 @@ export type AppState = Readonly<{
   codexStatus: CodexStatus;
   codexCliStatus: CodexCliStatus;
   consoleMessages: readonly ConsoleMessage[];
+  nativeRuntimeAvailable: boolean;
   runtimeStatus: RuntimeStatus;
+  selectedLaunchTarget: CodexLaunchTarget;
   uninstallConfirmationArmed: boolean;
   uninstallReport: CodexUninstallReport | null;
 }>;
@@ -50,7 +57,9 @@ export const INITIAL_APP_STATE: AppState = {
   codexStatus: UNCHECKED_CODEX_STATUS,
   codexCliStatus: UNCHECKED_CODEX_CLI_STATUS,
   consoleMessages: createCodexConsoleMessages(UNCHECKED_CODEX_STATUS),
+  nativeRuntimeAvailable: false,
   runtimeStatus: WAITING_RUNTIME_STATUS,
+  selectedLaunchTarget: INITIAL_CODEX_LAUNCH_TARGET,
   uninstallConfirmationArmed: false,
   uninstallReport: null,
 };
@@ -84,11 +93,24 @@ export function setFailedCodexStatus(state: AppState, message: string): AppState
   return setCodexStatus(state, createFailedCodexStatus(message));
 }
 
-export function setRunningActionStatus(state: AppState, label: string): AppState {
+export function setRunningActionStatus(state: AppState, label: TranslationKey): AppState {
   return {
     ...state,
     actionStatus: createRunningActionStatus(label),
   };
+}
+
+export function setSelectedLaunchTarget(
+  state: AppState,
+  selectedLaunchTarget: CodexLaunchTarget,
+): AppState {
+  return { ...state, actionStatus: IDLE_ACTION_STATUS, selectedLaunchTarget };
+}
+
+export function retranslateConsoleMessages(state: AppState): AppState {
+  return state.consoleMessages.length === 0
+    ? state
+    : { ...state, consoleMessages: createCodexConsoleMessages(state.codexStatus) };
 }
 
 export function setSucceededActionStatus(state: AppState, message: string): AppState {

@@ -29,6 +29,9 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Em um checkout sem os binarios locais do projeto, o launcher executa `npm ci`.
 - Manter o app desktop em `apps/Desktop`.
 - Manter frontend, backend Tauri e futuro core nativo isolados por responsabilidade.
+- Detectar a ponte nativa com `isTauri()` antes de executar comandos. O servidor
+  Vite aberto em um navegador apresenta uma previa somente da interface; acoes
+  nativas ficam desativadas e o app nao tenta chamar `invoke` sem Tauri.
 - Usar convencoes de modulo do Rust no backend Tauri quando exigidas pelo toolchain.
 - Manter `docs/RULES.md` alinhado a Rust, TypeScript, Tauri e APIs Windows isoladas.
 - O fluxo principal usa prioridade alta fixa para todos os processos Codex.
@@ -37,8 +40,12 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
   incluindo o executavel atual `ChatGPT.exe` e o nome legado `Codex.exe`.
 - Detectar a CLI independente em `%LOCALAPPDATA%\Programs\OpenAI\Codex\bin\codex.exe`
   e nos diretorios do `PATH`, sem exigir que o Desktop esteja instalado.
-- Abrir a CLI em um novo console com o token elevado do Codex Tools, iniciar no
-  perfil do usuario e estabilizar a prioridade usando o PID lancado como alvo.
+- Abrir a CLI com `CreateProcessW`, `CREATE_NEW_CONSOLE` e `HIGH_PRIORITY_CLASS`,
+  sem `STARTF_USESTDHANDLES`. O Codex Tools e uma aplicacao grafica Windows e nao
+  tem canais de console confiaveis para transmitir a CLI. O novo console fornece
+  entrada e saida proprias; o token elevado e herdado, e a prioridade comeca alta
+  antes da primeira verificacao do PID. Iniciar no perfil do usuario e continuar
+  monitorando o PID para confirmar que a CLI permanece ativa.
 - A desinstalacao continua limitada ao pacote Desktop e dados compartilhados;
   nao remove a instalacao independente do executavel CLI.
 - Detectar binarios primarios Codex em pacotes versionados, runtimes hashados em
@@ -83,7 +90,9 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
 - Elevacao `normal` no console indica token normal. Processos auxiliares do
   Chromium podem ser normais mesmo com desktop e app-server elevados.
 - Manter automacao generica fora da interface simplificada.
-- A acao `Abrir Codex como administrador` nao encerra processos Codex existentes.
+- O seletor da aba `Processos` escolhe Desktop ou CLI para um unico botao
+  `Abrir como administrador` e para o botao `Verificar`.
+- A acao `Abrir como administrador` nao encerra processos Codex existentes.
   O perfil separado evita o bloqueio de instancia unica da sessao corrente.
 - Inspecionar app-servers executados a partir do pacote desktop e dos runtimes
   hashados em `LOCALAPPDATA` como processos `codex.exe`.
@@ -97,6 +106,9 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
   catalogos. Chaves ausentes usam ingles; adicionar outro idioma exige somente
   um novo JSON com seu nome de locale.
 - Formatar numeros e pluralizacao com `Intl` no locale escolhido.
+- A aba `Configuracoes` permite selecionar um catalogo instalado ou deteccao
+  automatica; a escolha e aplicada imediatamente e salva em `localStorage` sob
+  `codex-tools.locale`. Catalogos removidos voltam a deteccao automatica.
 - Usar `rusqlite` com SQLite embutido para limpar o banco local do Codex sem
   depender de `sqlite3.exe` instalado no Windows.
 - Usar `serde_json` para limpar o estado global do Codex com parser JSON real,

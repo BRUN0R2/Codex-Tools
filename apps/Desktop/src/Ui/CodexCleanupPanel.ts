@@ -7,6 +7,7 @@ import { translateCleanupDiagnostic, translateCleanupTargetName } from "../i18n/
 export type CodexCleanupPanelProps = Readonly<{
   actionStatus: ActionStatus;
   cleanupReport: CodexCleanupReport | null;
+  nativeRuntimeAvailable: boolean;
   onClean: () => void;
 }>;
 
@@ -15,6 +16,7 @@ type CleanupSummaryValue = readonly [label: string, value: string];
 export function createCodexCleanupPanel({
   actionStatus,
   cleanupReport,
+  nativeRuntimeAvailable,
   onClean,
 }: CodexCleanupPanelProps): HTMLElementTagNameMap["section"] {
   const panel = document.createElement("section");
@@ -38,9 +40,9 @@ export function createCodexCleanupPanel({
   const cleanButton = document.createElement("button");
   cleanButton.className = "DangerButton";
   cleanButton.type = "button";
-  cleanButton.disabled = actionStatus.state === "Running";
+  cleanButton.disabled = !nativeRuntimeAvailable || actionStatus.state === "Running";
   cleanButton.textContent =
-    actionStatus.state === "Running" && actionStatus.label === translate("cleanup.cleaning")
+    actionStatus.state === "Running" && actionStatus.label === "cleanup.cleaning"
       ? translate("cleanup.cleaning")
       : translate("cleanup.clean");
   cleanButton.addEventListener("click", onClean);

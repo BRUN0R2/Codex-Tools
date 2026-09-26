@@ -371,7 +371,7 @@ fn describe_target_exit(target: StabilizationTarget) -> String {
             "Codex desktop process exited before high priority was established.".to_owned()
         }
         StabilizationTarget::Cli { process_id } => {
-            format!("Codex CLI process {process_id} exited before high priority was established.")
+            format!("Codex CLI process {process_id} exited before its launch was confirmed.")
         }
     }
 }

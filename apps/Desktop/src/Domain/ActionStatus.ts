@@ -1,10 +1,12 @@
+import type { TranslationKey } from "../i18n/catalog";
+
 export type ActionStatus =
   | Readonly<{
       state: "Idle";
     }>
   | Readonly<{
       state: "Running";
-      label: string;
+      label: TranslationKey;
     }>
   | Readonly<{
       state: "Succeeded";
@@ -19,7 +21,7 @@ export const IDLE_ACTION_STATUS: ActionStatus = {
   state: "Idle",
 };
 
-export function createRunningActionStatus(label: string): ActionStatus {
+export function createRunningActionStatus(label: TranslationKey): ActionStatus {
   return {
     state: "Running",
     label,
