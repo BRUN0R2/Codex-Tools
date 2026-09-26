@@ -4,8 +4,11 @@ use std::iter::once;
 use std::mem::size_of;
 use std::os::windows::ffi::OsStrExt;
 use std::path::{Path, PathBuf};
+use std::slice;
+use windows::Win32::System::Environment::{FreeEnvironmentStringsW, GetEnvironmentStringsW};
 use windows::Win32::System::Threading::{
-    CREATE_NEW_CONSOLE, CreateProcessW, HIGH_PRIORITY_CLASS, PROCESS_INFORMATION, STARTUPINFOW,
+    CREATE_NEW_CONSOLE, CREATE_UNICODE_ENVIRONMENT, CreateProcessW, HIGH_PRIORITY_CLASS,
+    PROCESS_INFORMATION, STARTUPINFOW,
 };
 use windows::core::{Error, PCWSTR, PWSTR};
 
@@ -15,6 +18,9 @@ const LOCAL_APP_DATA_ENVIRONMENT_VARIABLE: &str = "LOCALAPPDATA";
 const PATH_ENVIRONMENT_VARIABLE: &str = "PATH";
 const CODEX_CLI_RELATIVE_PATH: &[&str] = &["Programs", "OpenAI", "Codex", "bin", "codex.exe"];
 const CODEX_CLI_EXECUTABLE_NAME: &str = "codex.exe";
+const NO_DAEMON_ARGUMENT: &str = "--no-daemon";
+const TERM_ENVIRONMENT_VARIABLE: &str = "TERM";
+const DUMB_TERMINAL_VALUE: &str = "dumb";
 
 pub struct CodexCliInstallation {
     executable_path: Option<PathBuf>,
@@ -58,9 +64,10 @@ pub fn launch_codex_cli_in_console(
     working_directory: &Path,
 ) -> Result<u32, Error> {
     let executable = wide_from_os_str(executable_path.as_os_str());
-    let command_line = quoted_executable_command_line(executable_path);
+    let command_line = cli_command_line(executable_path);
     let mut command_line = wide_from_os_str(&command_line);
     let directory = wide_from_os_str(working_directory.as_os_str());
+    let environment = cli_environment_block()?;
     let startup = STARTUPINFOW {
         cb: size_of::<STARTUPINFOW>() as u32,
         ..Default::default()
@@ -75,8 +82,8 @@ pub fn launch_codex_cli_in_console(
             None,
             None,
             false,
-            CREATE_NEW_CONSOLE | HIGH_PRIORITY_CLASS,
-            None,
+            CREATE_NEW_CONSOLE | CREATE_UNICODE_ENVIRONMENT | HIGH_PRIORITY_CLASS,
+            Some(environment.as_ptr().cast()),
             PCWSTR::from_raw(directory.as_ptr()),
             &startup,
             &mut process,
@@ -92,11 +99,68 @@ pub fn launch_codex_cli_in_console(
     Ok(process.dwProcessId)
 }
 
-fn quoted_executable_command_line(executable_path: &Path) -> OsString {
+fn cli_command_line(executable_path: &Path) -> OsString {
+    // Elevated CLI sessions cannot connect to the shared background daemon.
     let mut command_line = OsString::from("\"");
     command_line.push(executable_path.as_os_str());
-    command_line.push("\"");
+    command_line.push("\" ");
+    command_line.push(NO_DAEMON_ARGUMENT);
     command_line
+}
+
+fn cli_environment_block() -> Result<Vec<u16>, Error> {
+    // The GUI may inherit TERM=dumb from a Codex-launched shell environment.
+    let source = unsafe { GetEnvironmentStringsW() };
+    if source.is_null() {
+        return Err(Error::from_thread());
+    }
+
+    let source_length = unsafe { environment_block_length(source.as_ptr()) };
+    let source_block = unsafe { slice::from_raw_parts(source.as_ptr(), source_length) };
+    let environment = without_dumb_terminal(source_block);
+    unsafe { FreeEnvironmentStringsW(PCWSTR::from_raw(source.as_ptr())) }?;
+    Ok(environment)
+}
+
+unsafe fn environment_block_length(source: *const u16) -> usize {
+    let mut index = 0;
+    loop {
+        if unsafe { *source.add(index) == 0 && *source.add(index + 1) == 0 } {
+            return index + 2;
+        }
+        index += 1;
+    }
+}
+
+fn without_dumb_terminal(source: &[u16]) -> Vec<u16> {
+    let mut environment = Vec::with_capacity(source.len());
+    for entry in source.split(|character| *character == 0) {
+        if entry.is_empty() {
+            break;
+        }
+        if is_dumb_terminal_entry(entry) {
+            continue;
+        }
+        environment.extend_from_slice(entry);
+        environment.push(0);
+    }
+    environment.push(0);
+    if environment.len() == 1 {
+        environment.push(0);
+    }
+    environment
+}
+
+fn is_dumb_terminal_entry(entry: &[u16]) -> bool {
+    let Some(separator) = entry
+        .iter()
+        .position(|character| *character == u16::from(b'='))
+    else {
+        return false;
+    };
+    String::from_utf16_lossy(&entry[..separator]).eq_ignore_ascii_case(TERM_ENVIRONMENT_VARIABLE)
+        && String::from_utf16_lossy(&entry[separator + 1..])
+            .eq_ignore_ascii_case(DUMB_TERMINAL_VALUE)
 }
 
 fn wide_from_os_str(value: &OsStr) -> Vec<u16> {
@@ -142,8 +206,8 @@ fn push_candidate(candidate_paths: &mut Vec<PathBuf>, candidate: PathBuf) {
 #[cfg(test)]
 mod tests {
     use super::{
-        CODEX_CLI_EXECUTABLE_NAME, CODEX_CLI_RELATIVE_PATH, push_candidate,
-        quoted_executable_command_line,
+        CODEX_CLI_EXECUTABLE_NAME, CODEX_CLI_RELATIVE_PATH, cli_command_line, push_candidate,
+        without_dumb_terminal,
     };
     use std::path::PathBuf;
 
@@ -169,11 +233,34 @@ mod tests {
     }
 
     #[test]
-    fn cli_command_line_quotes_paths_with_spaces() {
+    fn cli_command_line_quotes_paths_with_spaces_and_disables_the_daemon() {
         let path = PathBuf::from(r"C:\Program Files\OpenAI\Codex\bin\codex.exe");
         assert_eq!(
-            quoted_executable_command_line(&path),
-            r#""C:\Program Files\OpenAI\Codex\bin\codex.exe""#
+            cli_command_line(&path),
+            r#""C:\Program Files\OpenAI\Codex\bin\codex.exe" --no-daemon"#
         );
+    }
+
+    #[test]
+    fn cli_environment_removes_only_dumb_term_and_keeps_drive_state() {
+        let source: Vec<u16> =
+            "=C:=C:\\Users\\Example\0Path=C:\\Tools\0TERM=dumb\0USERPROFILE=C:\\Users\\Example\0\0"
+                .encode_utf16()
+                .collect();
+        let expected: Vec<u16> =
+            "=C:=C:\\Users\\Example\0Path=C:\\Tools\0USERPROFILE=C:\\Users\\Example\0\0"
+                .encode_utf16()
+                .collect();
+
+        assert_eq!(without_dumb_terminal(&source), expected);
+    }
+
+    #[test]
+    fn cli_environment_keeps_a_supported_term() {
+        let source: Vec<u16> = "TERM=xterm-256color\0USERPROFILE=C:\\Users\\Example\0\0"
+            .encode_utf16()
+            .collect();
+
+        assert_eq!(without_dumb_terminal(&source), source);
     }
 }

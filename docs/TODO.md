@@ -80,8 +80,9 @@
 - [x] Testar preferencia manual e fallback de preferencia salva indisponivel.
 - [x] Compilar o lancamento nativo da CLI com console e prioridade inicial.
 - [x] Executar testes Rust de deteccao e estabilizacao da CLI.
+- [x] Confirmar que a CLI permanece ativa em console elevado com `--no-daemon`.
 - [ ] Validar abertura do Codex em runtime.
-- [ ] Validar abertura da CLI elevada em runtime na build atualizada.
+- [ ] Validar a abertura da CLI pelo painel da build atualizada.
 - [ ] Validar lista de processos apos o Codex carregar totalmente.
 - [ ] Validar desinstalacao total em runtime com Codex fechado.
 

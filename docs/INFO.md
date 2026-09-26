@@ -44,8 +44,11 @@ Codex Tools sera reconstruido como um utilitario moderno para Windows.
   sem `STARTF_USESTDHANDLES`. O Codex Tools e uma aplicacao grafica Windows e nao
   tem canais de console confiaveis para transmitir a CLI. O novo console fornece
   entrada e saida proprias; o token elevado e herdado, e a prioridade comeca alta
-  antes da primeira verificacao do PID. Iniciar no perfil do usuario e continuar
-  monitorando o PID para confirmar que a CLI permanece ativa.
+  antes da primeira verificacao do PID. Passar `--no-daemon` evita a recusa do
+  daemon compartilhado em clientes elevados. Filtrar `TERM=dumb` do ambiente
+  filho permite que a CLI detecte o console Windows quando herdou essa variavel
+  de uma sessao Codex. Iniciar no perfil do usuario e continuar monitorando o
+  PID para confirmar que a CLI permanece ativa.
 - A desinstalacao continua limitada ao pacote Desktop e dados compartilhados;
   nao remove a instalacao independente do executavel CLI.
 - Detectar binarios primarios Codex em pacotes versionados, runtimes hashados em
